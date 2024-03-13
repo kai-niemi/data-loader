@@ -1,0 +1,281 @@
+model:
+  output-path: .output
+  tables:
+    - name: "warehouse"
+      count: "100"
+      columns:
+        - name: "w_id"
+          gen:
+            type: "sequence"
+            from: 1
+            step: 1
+        - name: "w_ytd"
+          expression: "randomBigDecimal(0,100000000000,2)"
+        - name: "w_tax"
+          expression: "randomBigDecimal(0,1000,4)"
+        - name: "w_name"
+          expression: "randomString(10)"
+        - name: "w_street_1"
+          expression: "randomString(20)"
+        - name: "w_street_2"
+          expression: "randomString(20)"
+        - name: "w_city"
+          expression: "randomString(20)"
+        - name: "w_state"
+          expression: "randomString(2)"
+        - name: "w_zip"
+          expression: "randomString(9)"
+    - name: "district"
+      columns:
+        - name: "d_w_id"
+          each:
+            name: "warehouse"
+            column: "w_id"
+            multiplier: 10
+        - name: "d_id"
+          gen:
+            type: "sequence"
+            from: 1
+            to: 10
+            step: 1
+        - name: "d_ytd"
+          expression: "randomBigDecimal(0,100000000000,2)"
+        - name: "d_tax"
+          expression: "randomBigDecimal(0,1000,4)"
+        - name: "d_next_o_id"
+          expression: "randomLong()"
+        - name: "d_name"
+          expression: "randomString(10)"
+        - name: "d_street_1"
+          expression: "randomString(20)"
+        - name: "d_street_2"
+          expression: "randomString(20)"
+        - name: "d_city"
+          expression: "randomString(20)"
+        - name: "d_state"
+          expression: "randomString(2)"
+        - name: "d_zip"
+          expression: "randomString(9)"
+    - name: "customer"
+      columns:
+        - name: "c_w_id"
+          each:
+            name: "district"
+            column: "d_w_id"
+        - name: "c_d_id"
+          ref:
+            name: "district"
+            column: "d_id"
+        - name: "c_id"
+          gen:
+            type: "sequence"
+            from: 1
+            step: 1
+        - name: "c_discount"
+          expression: "randomBigDecimal(0,1000,4)"
+        - name: "c_credit"
+          expression: "randomString(2)"
+        - name: "c_last"
+          expression: "randomString(16)"
+        - name: "c_first"
+          expression: "randomString(16)"
+        - name: "c_credit_lim"
+          expression: "randomBigDecimal(0,100000000000,2)"
+        - name: "c_balance"
+          expression: "randomBigDecimal(0,100000000000,2)"
+        - name: "c_ytd_payment"
+          expression: "randomDouble()"
+        - name: "c_payment_cnt"
+          expression: "randomLong()"
+        - name: "c_delivery_cnt"
+          expression: "randomLong()"
+        - name: "c_street_1"
+          expression: "randomString(20)"
+        - name: "c_street_2"
+          expression: "randomString(20)"
+        - name: "c_city"
+          expression: "randomString(20)"
+        - name: "c_state"
+          expression: "randomString(2)"
+        - name: "c_zip"
+          expression: "randomString(9)"
+        - name: "c_phone"
+          expression: "randomString(16)"
+        - name: "c_since"
+          expression: "randomDateTime()"
+        - name: "c_middle"
+          expression: "randomString(2)"
+        - name: "c_data"
+          expression: "randomString(500)"
+
+    - name: "history"
+      count: "10"
+      columns:
+        - name: "rowid"
+          gen:
+            type: "uuid"
+        - name: "h_c_id"
+          ref:
+            name: "customer"
+            column: "c_id"
+        - name: "h_c_d_id"
+          ref:
+            name: "customer"
+            column: "c_d_id"
+        - name: "h_c_w_id"
+          ref:
+            name: "customer"
+            column: "c_w_id"
+        - name: "h_d_id"
+          ref:
+            name: "district"
+            column: "d_id"
+        - name: "h_w_id"
+          ref:
+            name: "district"
+            column: "d_w_id"
+        - name: "h_date"
+          expression: "randomDateTime()"
+        - name: "h_amount"
+          expression: "randomBigDecimal(0,100000,2)"
+        - name: "h_data"
+          expression: "randomString(24)"
+        - name: "rowid"
+          expression: "randomLong()"
+
+    - name: "oorder"
+      columns:
+        - name: "o_w_id"
+          each:
+            name: "customer"
+            column: "c_w_id"
+        - name: "o_d_id"
+          ref:
+            name: "customer"
+            column: "c_d_id"
+        - name: "o_id"
+          expression: "randomLong()"
+        - name: "o_c_id"
+          ref:
+            name: "customer"
+            column: "c_id"
+        - name: "o_carrier_id"
+          expression: "randomLong()"
+        - name: "o_ol_cnt"
+          expression: "randomLong()"
+        - name: "o_all_local"
+          expression: "randomLong()"
+        - name: "o_entry_d"
+          expression: "randomDateTime()"
+
+    - name: "item"
+      count: "100"
+      columns:
+        - name: "i_id"
+          expression: "randomLong()"
+        - name: "i_name"
+          expression: "randomString(24)"
+        - name: "i_price"
+          expression: "randomBigDecimal(0,10000,2)"
+        - name: "i_data"
+          expression: "randomString(50)"
+        - name: "i_im_id"
+          expression: "randomLong()"
+
+    - name: "stock"
+      columns:
+        - name: "s_w_id"
+          each:
+            name: "warehouse"
+            column: "w_id"
+            unique: true
+        - name: "s_i_id"
+          each:
+            name: "item"
+            column: "i_id"
+        - name: "s_quantity"
+          expression: "randomLong()"
+        - name: "s_ytd"
+          expression: "randomBigDecimal(0,10000000,2)"
+        - name: "s_order_cnt"
+          expression: "randomLong()"
+        - name: "s_remote_cnt"
+          expression: "randomLong()"
+        - name: "s_data"
+          expression: "randomString(50)"
+        - name: "s_dist_01"
+          expression: "randomString(24)"
+        - name: "s_dist_02"
+          expression: "randomString(24)"
+        - name: "s_dist_03"
+          expression: "randomString(24)"
+        - name: "s_dist_04"
+          expression: "randomString(24)"
+        - name: "s_dist_05"
+          expression: "randomString(24)"
+        - name: "s_dist_06"
+          expression: "randomString(24)"
+        - name: "s_dist_07"
+          expression: "randomString(24)"
+        - name: "s_dist_08"
+          expression: "randomString(24)"
+        - name: "s_dist_09"
+          expression: "randomString(24)"
+        - name: "s_dist_10"
+          expression: "randomString(24)"
+
+    - name: "order_line"
+      columns:
+        - name: "ol_w_id"
+          each:
+            name: "oorder"
+            column: "o_w_id"
+            multiplier: 10
+        - name: "ol_d_id"
+          ref:
+            name: "oorder"
+            column: "o_d_id"
+        - name: "ol_o_id"
+          ref:
+            name: "oorder"
+            column: "o_id"
+        - name: "ol_number"
+          expression: "randomLong()"
+        - name: "ol_i_id"
+          ref:
+            name: "stock"
+            column: "s_i_id"
+        - name: "ol_delivery_d"
+          expression: "randomDateTime()"
+        - name: "ol_amount"
+          expression: "randomBigDecimal(0,100000,2)"
+        - name: "ol_supply_w_id"
+          ref:
+            name: "stock"
+            column: "s_w_id"
+        - name: "ol_quantity"
+          expression: "randomBigDecimal(0,100000,2)"
+        - name: "ol_dist_info"
+          expression: "randomString(24)"
+
+    - name: "new_order"
+      columns:
+        - name: "no_w_id"
+          each:
+            name: "oorder"
+            column: "o_w_id"
+        - name: "no_d_id"
+          ref:
+            name: "oorder"
+            column: "o_d_id"
+        - name: "no_o_id"
+          ref:
+            name: "oorder"
+            column: "o_id"
+  import:
+    options:
+      delimiter: ","
+      skip: "1"
+      allow_quoted_null: "null"
+    file: "import-tpcc.sql"
+    prefix: "http://${local-ip}:8090/"

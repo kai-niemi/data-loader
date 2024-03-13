@@ -1,0 +1,142 @@
+package io.roach.volt.expression;
+
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.atn.DecisionInfo;
+import org.antlr.v4.runtime.atn.DecisionState;
+import org.antlr.v4.runtime.atn.PredictionMode;
+import org.springframework.util.StringUtils;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.stream.IntStream;
+
+/**
+ * Parse and evaluate logical expressions.
+ * <p/>
+ * See the ANTLR4 grammar for specifics.
+ *
+ * @author Kai Niemi
+ */
+public class VoltExpression {
+    public static final ExpressionRegistry EMPTY_REGISTRY = new DefaultExpressionRegistry();
+
+    /**
+     * Parse an expression for syntax validation.
+     *
+     * @param expression the expression
+     * @return true if the expression is valid
+     */
+    public static boolean isValid(String expression) {
+        if (!StringUtils.hasLength(expression)) {
+            return false;
+        }
+        try {
+            evaluate(expression, Object.class, EMPTY_REGISTRY);
+            return true;
+        } catch (ExpressionException ex) {
+            return false;
+        }
+    }
+
+    /**
+     * Parse and evaluate an expression.
+     *
+     * @param expression the expression
+     * @return the binary outcome
+     * @throws ExpressionException if the expression break grammar rules
+     */
+    public static Object evaluate(String expression) {
+        return evaluate(expression, Object.class);
+    }
+
+    /**
+     * Parse and evaluate an expression.
+     *
+     * @param expression the expression
+     * @param type       the type that the result object is expected to match
+     * @return the result object of the expression
+     * @throws ExpressionException if the expression break grammar rules
+     */
+    public static <T> T evaluate(String expression, Class<T> type) {
+        return evaluate(expression, type, EMPTY_REGISTRY);
+    }
+
+    /**
+     * Parse and evaluate an expression.
+     *
+     * @param expression the expression
+     * @param type       the type that the result object is expected to match
+     * @param registry   callback for resolving expression variables and functions
+     * @return the result object of the expression
+     * @throws ExpressionException if the expression break grammar rules
+     */
+    public static <T> T evaluate(String expression, Class<T> type, ExpressionRegistry registry) {
+        ExpressionParser parser = createParser(expression);
+
+        ExpressionParseTreeListener listener = new ExpressionParseTreeListener(parser, registry);
+        parser.addParseListener(listener);
+        parser.root();
+
+        Object top = listener.finalOutcome();
+        if (top instanceof BigDecimal) {
+            BigDecimal bd = (BigDecimal) top;
+            if (bd.scale() > 0) {
+                return type.cast(bd.doubleValue());
+            }
+            if (type.equals(Long.class)) {
+                return type.cast(bd.longValue());
+            }
+            return type.cast(bd.intValue());
+        }
+
+        return type.cast(top);
+    }
+
+    private static ExpressionParser createParser(String expression) {
+        final FailFastErrorStrategy errorStrategy = new FailFastErrorStrategy();
+
+        ExpressionLexer lexer
+                = new ExpressionLexer(CharStreams.fromString(expression));
+        lexer.removeErrorListeners();
+        lexer.addErrorListener(errorStrategy);
+
+        ExpressionParser parser
+                = new ExpressionParser(new CommonTokenStream(lexer));
+        parser.setErrorHandler(errorStrategy);
+        parser.addErrorListener(errorStrategy);
+        // Grammar is simple enough with low ambiguity level
+        parser.getInterpreter().setPredictionMode(PredictionMode.SLL);
+
+        return parser;
+    }
+
+    private static void profileParser(ExpressionParser parser) {
+        System.out.printf("%-" + 35 + "s", "rule");
+        System.out.printf("%-" + 15 + "s", "time");
+        System.out.printf("%-" + 15 + "s", "invocations");
+        System.out.printf("%-" + 15 + "s", "lookahead");
+        System.out.printf("%-" + 15 + "s", "lookahead(max)");
+        System.out.printf("%-" + 15 + "s", "ambiguities");
+        System.out.printf("%-" + 15 + "s", "errors");
+
+        System.out.println();
+        IntStream.rangeClosed(1, 15 * 6 + 35).forEach(value -> {
+            System.out.printf("-");
+        });
+        System.out.println();
+
+        for (DecisionInfo decisionInfo : parser.getParseInfo().getDecisionInfo()) {
+            DecisionState ds = parser.getATN().getDecisionState(decisionInfo.decision);
+            if (decisionInfo.timeInPrediction > 0) {
+                System.out.printf("%-" + 35 + "s", parser.getRuleNames()[ds.ruleIndex]);
+                System.out.printf("%-" + 15 + "s", Duration.ofNanos(decisionInfo.timeInPrediction));
+                System.out.printf("%-" + 15 + "s", decisionInfo.invocations);
+                System.out.printf("%-" + 15 + "s", decisionInfo.SLL_TotalLook);
+                System.out.printf("%-" + 15 + "s", decisionInfo.SLL_MaxLook);
+                System.out.printf("%-" + 15 + "s", decisionInfo.ambiguities);
+                System.out.printf("%-" + 15 + "s%n", decisionInfo.errors);
+            }
+        }
+    }
+}

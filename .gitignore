@@ -1,0 +1,16 @@
+.idea/
+.output/
+.log/
+.mvn/
+target/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+.DS_Store?
+Thumbs.db
+*.log
+*.tmp
+*.gz
+*.history
+bash.lnk

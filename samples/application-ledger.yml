@@ -1,0 +1,106 @@
+model:
+  output-path: output
+  tables:
+    - name: customer
+      count: 10
+      columns:
+        - name: id
+          expression: "randomUUID()"
+        - name: city
+          expression: "randomCity()"
+        - name: name
+          expression: "randomFullName()"
+        - name: email
+          expression: "randomEmail()"
+    - name: account
+      count: 100
+      columns:
+        - name: id
+          expression: "randomUUID()"
+        - name: customer_id
+          ref:
+            name: customer
+            column: id
+        - name: customer_name
+          ref:
+            name: customer
+            column: name
+        - name: balance
+          expression: "randomBigDecimal(0.00,100.00)"
+        - name: currency
+          expression: "randomCurrency()"
+        - name: description
+          expression: "randomString(256)"
+        - name: account_type
+          expression: "selectRandom('A', 'L', 'E', 'R', 'C')"
+        - name: closed
+          expression: "rowNumber() % 2"
+        - name: allow_negative
+          expression: "if rowNumber() % 100 == 0 then 1 else 0"
+        - name: region
+          expression: "selectRandom('eu-1', 'eu-2', 'eu-3', 'us-1', 'us-2')"
+    - name: transaction
+      count: 1000
+      columns:
+        - name: id
+          expression: "randomUUID()"
+        - name: booking_date
+          range:
+            type: date
+            from: "2023-12-01"
+            to: "2024-12-01"
+            step: 1
+            step-unit: DAYS
+        - name: transaction_type
+          expression: "selectRandom('A', 'B', 'C', 'D', 'E')"
+        - name: region
+          expression: "selectRandom('eu-1', 'eu-2', 'eu-3', 'us-1', 'us-2')"
+    - name: transaction_item
+      columns:
+        - name: account_id
+          each:
+            name: account
+            column: id
+        - name: transaction_id
+          each:
+            name: transaction
+            column: id
+        - name: amount
+          expression: "randomBigDecimal(10.00,50.00)"
+        - name: currency
+          ref:
+            name: account
+            column: currency
+        - name: customer_id
+          hidden: true
+          ref:
+            name: account
+            column: customer_id
+        - name: note
+          expression: "randomString(256)"
+        - name: running_balance
+          expression: "randomBigDecimal(10.00,50.00)"
+    ####################################
+    - name: transaction_item_history
+      columns:
+        - name: account_id
+          each:
+            name: transaction_item
+            column: account_id
+        - name: transaction_id
+          ref:
+            name: transaction_item
+            column: transaction_id
+        - name: customer_id
+          ref:
+            name: transaction_item
+            column: customer_id
+        - name: note
+          expression: "randomString(256)"
+  import:
+    options:
+      delimiter: ","
+      skip: "1"
+      allow_quoted_null: "null"
+    file: "import-ledger.sql"
+    prefix: "http://${local-ip}:8090/"
