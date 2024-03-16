@@ -79,21 +79,21 @@ public class CSV extends AbstractEventPublisher {
     }
 
     @ShellMethodAvailability("ifActiveProducers")
-    @ShellMethod(value = "Cancel any active CSV operation", key = {"csv-cancel", "c"})
+    @ShellMethod(value = "Cancel all background operations", key = {"csv-cancel", "c"})
     public void cancel() {
         publishEvent(new CancellationEvent());
     }
 
     @ShellMethod(value = "Show application model YAML", key = {"csv-show", "cs"})
     public void show() throws IOException {
-        console.printf(yamlObjectMapper.writerFor(Root.class)
+        console.blue(yamlObjectMapper.writerFor(Root.class)
                 .writeValueAsString(new Root(applicationModel))).nl();
     }
 
     @ShellMethod(value = "Validate application model YAML", key = {"csv-validate", "cv"})
     public void validate() {
         validateModel();
-        console.printf("All good").nl();
+        console.blue("All good").nl();
     }
 
     private void validateModel() {

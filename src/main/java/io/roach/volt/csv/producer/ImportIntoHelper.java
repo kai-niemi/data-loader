@@ -92,7 +92,7 @@ public class ImportIntoHelper {
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
 
-        ansiConsole.printf("Created '%s' in topological order: %s"
+        ansiConsole.blue("Created '%s' in topological order: %s"
                 .formatted(importFilePath,
                         StringUtils.collectionToCommaDelimitedString(
                                 paths.keySet().stream().map(Table::getName).collect(Collectors.toList())))

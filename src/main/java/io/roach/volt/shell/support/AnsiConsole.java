@@ -24,59 +24,46 @@ public class AnsiConsole {
     }
 
     public AnsiConsole cyan(String format, Object... args) {
-        printf(AnsiColor.BRIGHT_CYAN, format, args);
-        return this;
+        return printf(AnsiColor.BRIGHT_CYAN, format, args);
     }
 
     public AnsiConsole red(String format, Object... args) {
-        printf(AnsiColor.BRIGHT_RED, format, args);
-        return this;
+        return printf(AnsiColor.BRIGHT_RED, format, args);
     }
 
     public AnsiConsole green(String format, Object... args) {
-        printf(AnsiColor.BRIGHT_GREEN, format, args);
-        return this;
+        return printf(AnsiColor.BRIGHT_GREEN, format, args);
     }
 
     public AnsiConsole blue(String format, Object... args) {
-        printf(AnsiColor.BRIGHT_BLUE, format, args);
-        return this;
+        return printf(AnsiColor.BRIGHT_BLUE, format, args);
     }
 
     public AnsiConsole yellow(String format, Object... args) {
-        printf(AnsiColor.BRIGHT_YELLOW, format, args);
-        return this;
+        return printf(AnsiColor.BRIGHT_YELLOW, format, args);
     }
 
     public AnsiConsole magenta(String format, Object... args) {
-        printf(AnsiColor.BRIGHT_MAGENTA, format, args);
-        return this;
-    }
-
-    public AnsiConsole printf(String format, Object... args) {
-        printf(AnsiColor.BRIGHT_BLUE, format, args);
-        return this;
+        return printf(AnsiColor.BRIGHT_MAGENTA, format, args);
     }
 
     private AnsiConsole printf(AnsiColor color, String format, Object... args) {
         return print(color, String.format(Locale.US, format, args));
     }
 
-    public synchronized AnsiConsole print(AnsiColor color, String text) {
-        String esc = AnsiOutput.toString(color, text, AnsiColor.DEFAULT);
-        terminal.writer().print(esc);
+    public AnsiConsole print(AnsiColor color, String text) {
+        terminal.writer().print(AnsiOutput.toString(color, text, AnsiColor.DEFAULT));
         terminal.writer().flush();
         return this;
     }
 
-    public synchronized AnsiConsole println(AnsiColor color, String text) {
-        String esc = AnsiOutput.toString(color, text, AnsiColor.DEFAULT);
-        terminal.writer().println(esc);
+    public AnsiConsole println(AnsiColor color, String text) {
+        terminal.writer().println(AnsiOutput.toString(color, text, AnsiColor.DEFAULT));
         terminal.writer().flush();
         return this;
     }
 
-    public synchronized AnsiConsole nl() {
+    public AnsiConsole nl() {
         terminal.writer().println();
         terminal.writer().flush();
         return this;

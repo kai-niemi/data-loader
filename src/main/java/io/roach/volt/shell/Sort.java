@@ -133,7 +133,7 @@ public class Sort extends AbstractEventPublisher {
                 .collect(Collectors.toList());
 
         inputFiles.forEach(path -> {
-            console.println(AnsiColor.BRIGHT_CYAN, path.toString());
+            console.cyan(path.toString());
         });
 
         if (inputFiles.isEmpty()) {

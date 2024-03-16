@@ -1,5 +1,8 @@
 package io.roach.volt.config;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.aop.interceptor.SimpleAsyncUncaughtExceptionHandler;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,13 +13,8 @@ import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.async.CallableProcessingInterceptor;
 import org.springframework.web.context.request.async.TimeoutCallableProcessingInterceptor;
-
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Configuration
 @EnableAspectJAutoProxy
@@ -25,13 +23,16 @@ public class AsyncConfiguration implements AsyncConfigurer {
     @Value("${application.maximum-threads}")
     private int threadPoolSize;
 
+    /**
+     * Executor used exclusively for @Async methods.
+     */
     @Override
     public AsyncTaskExecutor getAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(threadPoolSize > 0
-                ? threadPoolSize : Runtime.getRuntime().availableProcessors());
-        executor.setMaxPoolSize(300);
-        executor.setQueueCapacity(25);
+        executor.setCorePoolSize(5);
+//                threadPoolSize > 0 ? threadPoolSize : Runtime.getRuntime().availableProcessors());
+        executor.setMaxPoolSize(5);
+//        executor.setQueueCapacity(5);
 
         executor.setThreadNamePrefix("async-");
         executor.setAwaitTerminationSeconds(5);
@@ -48,6 +49,8 @@ public class AsyncConfiguration implements AsyncConfigurer {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(threadPoolSize > 0
                 ? threadPoolSize : Runtime.getRuntime().availableProcessors());
+        executor.setMaxPoolSize(100);
+        executor.setQueueCapacity(100 / 4);
 
         executor.setThreadNamePrefix("pool-");
         executor.setAwaitTerminationSeconds(5);
@@ -55,7 +58,7 @@ public class AsyncConfiguration implements AsyncConfigurer {
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAcceptTasksAfterContextClose(false);
         executor.initialize();
-            
+
         return executor;
     }
 
@@ -71,12 +74,7 @@ public class AsyncConfiguration implements AsyncConfigurer {
 
     @Bean
     public CallableProcessingInterceptor callableProcessingInterceptor() {
-        return new TimeoutCallableProcessingInterceptor() {
-            @Override
-            public <T> Object handleTimeout(NativeWebRequest request, Callable<T> task) throws Exception {
-                return super.handleTimeout(request, task);
-            }
-        };
+        return new TimeoutCallableProcessingInterceptor();
     }
 }
 

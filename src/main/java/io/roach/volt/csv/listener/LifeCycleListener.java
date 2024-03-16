@@ -39,12 +39,12 @@ public class LifeCycleListener extends AbstractEventPublisher {
         activeCount.incrementAndGet();
 
         if (event.getTarget().isBounded()) {
-            console.printf("Started generating '%s' with %,d rows".formatted(
+            console.blue("Started generating '%s' with %,d rows".formatted(
                             event.getTarget().getPath().getFileName(),
                             event.getTarget().getTable().getFinalCount()))
                     .nl();
         } else {
-            console.printf("Started generating '%s' with unspecified rows".formatted(
+            console.blue("Started generating '%s' with unspecified rows".formatted(
                             event.getTarget().getPath().getFileName()))
                     .nl();
         }
@@ -70,14 +70,25 @@ public class LifeCycleListener extends AbstractEventPublisher {
         paths.computeIfAbsent(event.getTarget().getTable(), s -> new ArrayList<>())
                 .add(event.getTarget().getPath());
 
-        console.printf("Finished generating '%s' with %,d rows in %s (%.0f/s avg) - %d file(s) in queue"
-                        .formatted(
-                                event.getTarget().getPath().getFileName(),
-                                event.getTarget().getRows(),
-                                event.getTarget().getDuration(),
-                                event.getTarget().calcRequestsPerSec(),
-                                activeCount.get() + 1))
-                .nl();
+        if (event.getTarget().isCancelled()) {
+            console.blue("Cancelled generating '%s' with %,d rows in %s (%.0f/s avg) - %d file(s) in queue"
+                            .formatted(
+                                    event.getTarget().getPath().getFileName(),
+                                    event.getTarget().getRows(),
+                                    event.getTarget().getDuration(),
+                                    event.getTarget().calcRequestsPerSec(),
+                                    activeCount.get() + 1))
+                    .nl();
+        } else {
+            console.blue("Finished generating '%s' with %,d rows in %s (%.0f/s avg) - %d file(s) in queue"
+                            .formatted(
+                                    event.getTarget().getPath().getFileName(),
+                                    event.getTarget().getRows(),
+                                    event.getTarget().getDuration(),
+                                    event.getTarget().calcRequestsPerSec(),
+                                    activeCount.get() + 1))
+                    .nl();
+        }
 
         if (activeCount.decrementAndGet() <= 0) {
             if (!event.getTarget().isCancelled()) {
@@ -93,8 +104,9 @@ public class LifeCycleListener extends AbstractEventPublisher {
     }
 
     @EventListener
-    public void onAbortedEvent(GenericEvent<ProducerFailedEvent> event) {
-        console.printf("Aborted " + event.getTarget().getTable(),
-                event.getTarget().getCause()).nl();
+    public void onFailedEvent(GenericEvent<ProducerFailedEvent> event) {
+        console.blue("Failed generating '%s': %s"
+                .formatted(event.getTarget().getTable(), event.getTarget().getCause()))
+                .nl();
     }
 }

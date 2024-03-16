@@ -65,7 +65,7 @@ public class ProducerListener extends AbstractEventPublisher {
     @EventListener
     public void onCancelEvent(GenericEvent<CancellationEvent> event) {
         cancellationRequested.set(true);
-        console.printf("Cancellation request received").nl();
+        console.blue("Cancellation request received").nl();
     }
 
     @EventListener
@@ -113,7 +113,7 @@ public class ProducerListener extends AbstractEventPublisher {
 
             producer.produce(publisher, (values, rowEstimate) -> {
                 if (cancellationRequested.get()) {
-                    console.printf("Cancelling producer for '%s' at %,d of %,d rows"
+                    console.blue("Cancelling producer for '%s' at %,d of %,d rows"
                             .formatted(path.getFileName().toString(),
                                     currentRow.get(),
                                     rowEstimate)).nl();

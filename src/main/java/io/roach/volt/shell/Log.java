@@ -36,7 +36,7 @@ public class Log {
     
     private Level setLogLevel(Logger logger, Level newLevel) {
         logger.setLevel(newLevel);
-        ansiConsole.printf("'%s' level set to %s\n", logger.getName(), logger.getLevel());
+        ansiConsole.blue("'%s' level set to %s\n", logger.getName(), logger.getLevel());
         return logger.getLevel();
     }
 }

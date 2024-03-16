@@ -255,7 +255,7 @@ public class SchemaExport {
         yamlObjectMapper.writerFor(Root.class)
                 .writeValue(modelFile.toFile(), new Root(model));
 
-        console.printf(yamlObjectMapper.writerFor(Root.class)
+        console.blue(yamlObjectMapper.writerFor(Root.class)
                 .writeValueAsString(new Root(model))).nl();
 
         console.magenta("NOTE: Restart to apply exported model").nl();

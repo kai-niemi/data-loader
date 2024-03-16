@@ -43,7 +43,7 @@ public class Expression {
 
             ansiConsole.magenta("Result: ")
                     .green("%s", result)
-                    .yellow(" (%s)\n", result.getClass().getName())
+                    .yellow(" (%s)", result.getClass().getName())
                     .nl()
                     .magenta("Time: ")
                     .green(" %s", duration.toString())
