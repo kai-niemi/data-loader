@@ -7,8 +7,8 @@ model:
   outputPath: ".output"
   tables:
     - name: "accounts"
-      count: "100"
-      files: 1
+      count: "500m"
+      files: 100
       columns:
         - name: "acc_no"
           expression: "randomString(512)"

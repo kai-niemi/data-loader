@@ -22,12 +22,12 @@ import io.roach.volt.csv.producer.ChunkWriter;
 import io.roach.volt.expression.ExpressionRegistry;
 import io.roach.volt.expression.ExpressionRegistryBuilder;
 import io.roach.volt.expression.FunctionDef;
-import io.roach.volt.util.concurrent.BlockingHashMap;
 import io.roach.volt.util.pubsub.Publisher;
 import org.springframework.batch.item.Chunk;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -73,13 +73,11 @@ public class ProducerListener extends AbstractEventPublisher {
         cancellationRequested.set(false);
     }
 
+    @Async
     @EventListener
     public CompletableFuture<Integer> onStartEvent(GenericEvent<ProduceStartEvent> event) {
         final Table table = event.getTarget().getTable();
         final Path path = event.getTarget().getPath();
-
-        logger.info("Started producing '%s'".formatted(path));
-
         final AtomicInteger currentRow = new AtomicInteger();
 
         // Context specific functions

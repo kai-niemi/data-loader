@@ -1,5 +1,11 @@
 package io.roach.volt.expression;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -9,32 +15,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-
+@Tag("unit-test")
 public class ExpressionGrammarTest {
-    @Test
-    void testExpression() {
-        DefaultExpressionRegistry registry = new DefaultExpressionRegistry();
-        registry.addFunction(FunctionDef.builder()
-                .withId("pow")
-                .withArgs(List.of("arg1", "arg2"))
-                .withFunction(args -> {
-                    Number arg1 = (Number) args[0];
-                    Number arg2 = (Number) args[1];
-                    return Math.pow(arg1.intValue(), arg2.intValue());
-                }).build());
-        BigDecimal result = VoltExpression.evaluate("pow(3,pow(2,1+2))", BigDecimal.class, registry);
-        Assertions.assertEquals(bd(Math.pow(3, Math.pow(2, 1 + 2))), result);
+    private static BigDecimal wrap(double v) {
+        return new BigDecimal(Double.toString(v));
     }
 
     @Test
-    void simpleExpression() {
+    void testSimpleExpression() {
         DefaultExpressionRegistry registry = new DefaultExpressionRegistry();
         registry.addVariable("pi", Math.PI);
         registry.addVariable("r", 25);
+        registry.addVariable("x", new BigDecimal("12322332232332.32323223"));
+        registry.addVariable("y", new BigDecimal("12322332232332.32323223"));
 
         registry.addFunction(FunctionDef.builder()
                 .withId("pow")
@@ -46,11 +39,16 @@ public class ExpressionGrammarTest {
                 }).build());
 
         BigDecimal result = VoltExpression.evaluate("2 * pi * r + pow(2,3)", BigDecimal.class, registry);
+
         Assertions.assertEquals(2 * Math.PI * 25 + Math.pow(2, 3), result.doubleValue());
+
+        BigDecimal result2 = VoltExpression.evaluate("x + y", BigDecimal.class, registry);
+
+        Assertions.assertEquals(new BigDecimal("12322332232332.32323223").multiply(new BigDecimal("2")), result2);
     }
 
     @Test
-    void sqlExpression() {
+    void testSQLExpression() {
         final AtomicInteger rowNumber = new AtomicInteger();
 
         DefaultExpressionRegistry registry = new DefaultExpressionRegistry();
@@ -103,7 +101,7 @@ public class ExpressionGrammarTest {
 
     @ParameterizedTest
     @VariableSource("arithmetics")
-    public void evaluateArithmetics(Object expected, String expression) {
+    public void testArithmeticExpressions(Object expected, String expression) {
         BigDecimal out = VoltExpression.evaluate(expression, BigDecimal.class);
         Assertions.assertEquals(new BigDecimal(String.valueOf(expected)).setScale(2), out.setScale(2));
     }
@@ -116,7 +114,7 @@ public class ExpressionGrammarTest {
 
     @ParameterizedTest
     @VariableSource("stringOperations")
-    public void evaluateStringOperations(Object expected, String expression) {
+    public void testStringExpressions(Object expected, String expression) {
         Object out = VoltExpression.evaluate(expression);
         Assertions.assertEquals(expected, out);
     }
@@ -141,7 +139,7 @@ public class ExpressionGrammarTest {
 
     @ParameterizedTest
     @VariableSource("conditionals")
-    public void evaluateConditionals(Object expected, String expression) {
+    public void testConditionalExpressions(Object expected, String expression) {
         Object out = VoltExpression.evaluate(expression);
         Assertions.assertEquals(expected, out);
     }
@@ -169,7 +167,7 @@ public class ExpressionGrammarTest {
 
     @ParameterizedTest
     @VariableSource("conditionalsWithVariables")
-    public void evaluateConditionalWithVariables(Object expected, String expression) {
+    public void testConditionalsWithVariablesExpressions(Object expected, String expression) {
         DefaultExpressionRegistry map = new DefaultExpressionRegistry();
         map.addVariable("x", new BigDecimal("5"));
         map.addVariable("y", new BigDecimal("10"));
@@ -192,16 +190,11 @@ public class ExpressionGrammarTest {
 
     @ParameterizedTest
     @VariableSource("literals")
-    public void evaluateLiterals(Object expected, String expression) {
+    public void testLiteralExpressions(Object expected, String expression) {
         Object out = VoltExpression.evaluate(expression);
         Assertions.assertEquals(expected, out, expression);
     }
 
-    // a=1.0
-    // b=2.0
-    // c=3.0
-    // d=10.0
-    // e=20
     public static Stream<Arguments> variableArithmetics = Stream.of(
             Arguments.of((-(2.0 + 3.0)) * 10.0, "(1.0 * -(2.0 + 3.0)) * 10.0"),
             Arguments.of((-(2.0 + 3.0)) * 10.0, "(a * -(b + c)) * d"),
@@ -232,7 +225,7 @@ public class ExpressionGrammarTest {
 
     @ParameterizedTest
     @VariableSource("variableArithmetics")
-    public void evaluateVariableArithmetics(Object expected, String expression) {
+    public void testVariableArithmetics(Object expected, String expression) {
         DefaultExpressionRegistry map = new DefaultExpressionRegistry();
         map.addVariable("a", new BigDecimal("1.0"));
         map.addVariable("b", new BigDecimal("2.0"));
@@ -262,7 +255,7 @@ public class ExpressionGrammarTest {
 
     @ParameterizedTest
     @VariableSource("functionArithmetics")
-    public void evaluateFunctionArithmetics(Object expected, String expression) {
+    public void testFunctionArithmetics(Object expected, String expression) {
         DefaultExpressionRegistry map = new DefaultExpressionRegistry();
         map.addFunction("rowNumber", args -> {
             return counter.incrementAndGet();
@@ -289,32 +282,26 @@ public class ExpressionGrammarTest {
         Assertions.assertEquals(expected, out);
     }
 
-    private static BigDecimal bd(double v) {
-        return new BigDecimal(v);
-    }
-
     public static Stream<Arguments> functions = Stream.of(
             Arguments.of("bar", "query('SELECT full_name FROM users ORDER BY id OFFSET ? LIMIT 1')"),
-            Arguments.of(bd(Math.pow(3, Math.pow(2, 1 + 2))), "pow(3,pow(2,1+2))"),
-            Arguments.of(bd(Math.PI), "pi"),
-            Arguments.of(bd(Math.PI * 2), "pi * 2"),
-            Arguments.of(bd(-Math.PI * 2), "-pi * 2"),
-            Arguments.of(bd(1.0), "one()"),
-            Arguments.of(bd(1 + 2), "onePlus(2)"),
-            Arguments.of(bd(-Math.PI), "negate(pi)"),
-            Arguments.of(bd(Math.pow(2, 3)), "pow(2,3)"),
-            Arguments.of(bd(Math.pow(-(4 + 3) * 2, 2)), "pow(negate((4+3)*2),2)"),
-            Arguments.of(bd(-(Math.PI + Math.PI * 2 + -Math.PI)), "negate(add(pi,pi*2,negate(pi)))")
+            Arguments.of(wrap(Math.pow(3, Math.pow(2, 1 + 2))), "pow(3,pow(2,1+2))"),
+            Arguments.of(wrap(Math.PI), "pi"),
+            Arguments.of(wrap(Math.PI * 2), "pi * 2"),
+            Arguments.of(wrap(-Math.PI * 2), "-pi * 2"),
+            Arguments.of(wrap(1.0), "one()"),
+            Arguments.of(wrap(1 + 2).setScale(0), "onePlus(2)"),
+            Arguments.of(wrap(-Math.PI), "negate(pi)"),
+            Arguments.of(wrap(Math.pow(2, 3)), "pow(2,3)"),
+            Arguments.of(wrap(Math.pow(-(4 + 3) * 2, 2)), "pow(negate((4+3)*2),2)"),
+            Arguments.of(wrap(-(Math.PI + Math.PI * 2 + -Math.PI)), "negate(add(pi,pi*2,negate(pi)))")
     );
 
     @ParameterizedTest
     @VariableSource("functions")
-    public void evaluateFunctions(Object expected, String expression) {
+    public void testFunctions(Object expected, String expression) {
         DefaultExpressionRegistry registry = new DefaultExpressionRegistry();
         registry.addVariable("pi", Math.PI);
-        registry.addFunction("one", args -> {
-            return 1.0;
-        });
+        registry.addFunction("one", args -> 1.0);
 
         registry.addFunction(FunctionDef.builder()
                 .withId("onePlus")
@@ -383,7 +370,7 @@ public class ExpressionGrammarTest {
 
     @ParameterizedTest
     @VariableSource("illegalExpressions")
-    public void evaluateIllegals(Object expected, String expression) {
+    public void testIllegalExpressions(Object expected, String expression) {
         Assertions.assertEquals(expected, VoltExpression.isValid(expression));
     }
 }

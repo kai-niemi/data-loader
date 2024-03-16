@@ -40,7 +40,7 @@ public class ExpressionParseTreeListener extends ExpressionParserBaseListener {
         this.registry = registry;
     }
 
-    public Object finalOutcome() {
+    public Object popFinal() {
         if (!binaryOutcome.isEmpty()) {
             Boolean top = pop(Boolean.class);
             return top ? binaryOutcome.getLast() : binaryOutcome.getFirst();
@@ -50,7 +50,7 @@ public class ExpressionParseTreeListener extends ExpressionParserBaseListener {
 
     private void push(Object o) {
         if (o instanceof Number && !(o instanceof BigDecimal)) {
-            this.stack.push(new BigDecimal(o.toString()));
+            this.stack.push(new BigDecimal(Objects.toString(o)));
         } else {
             this.stack.push(o);
         }
@@ -190,10 +190,10 @@ public class ExpressionParseTreeListener extends ExpressionParserBaseListener {
 
     @Override
     public void exitStringLiteral(ExpressionParser.StringLiteralContext ctx) {
-        String v = ctx.getText();
+        String text = ctx.getText();
 
-        if (!v.isEmpty()) {
-            push(v.substring(1, v.length() - 1));
+        if (!text.isEmpty()) {
+            push(text.substring(1, text.length() - 1));
         } else {
             push("");
         }
@@ -249,8 +249,8 @@ public class ExpressionParseTreeListener extends ExpressionParserBaseListener {
         List<Object> args = new ArrayList<>();
 
         try {
-            ctx.functionArguments().functionArgument().forEach(
-                    expressionContext -> args.add(pop(Object.class, ctx)));
+            ctx.functionArguments().functionArgument()
+                    .forEach(expressionContext -> args.add(pop(Object.class, ctx)));
 
             Collections.reverse(args);
 
@@ -258,12 +258,9 @@ public class ExpressionParseTreeListener extends ExpressionParserBaseListener {
 
             FunctionDef functionDef = registry.findFunction(id).orElseThrow(() ->
                     ExpressionException.from(parser, "No such function: " + id));
-            int argsCount = functionDef.getArgs().size();
-//            if (argsCount > args.toArray().length) {
-//                throw ExpressionException.from(parser,
-//                        "Function %s expected %d args, got %d".formatted(id, argsCount, args.toArray().length), ctx.getStop());
-//            }
-            Object rv = functionDef.getFunction().call(args.toArray());
+
+            Object rv = functionDef.getFunction()
+                    .call(args.toArray());
             push(rv);
         } catch (Exception e) {
             throw ExpressionException.from(parser, e, ctx.getStop());

@@ -174,7 +174,7 @@ public class CSV extends AbstractEventPublisher {
                         ? "%s%s-%03d.csv".formatted(table.getName(), suffix, value)
                         : "%s%s.csv".formatted(table.getName(), suffix)
                 );
-                logger.info("Generating '%s'".formatted(path));
+
                 publishEvent(new ProduceStartEvent(table, path, quit));
             });
         }
