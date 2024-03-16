@@ -1,15 +1,15 @@
 package io.roach.volt.expression;
 
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.stream.IntStream;
+
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.atn.DecisionInfo;
 import org.antlr.v4.runtime.atn.DecisionState;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.springframework.util.StringUtils;
-
-import java.math.BigDecimal;
-import java.time.Duration;
-import java.util.stream.IntStream;
 
 /**
  * Parse and evaluate logical expressions.
@@ -50,6 +50,10 @@ public class VoltExpression {
         return evaluate(expression, Object.class);
     }
 
+    public static Object evaluate(String expression, ExpressionRegistry registry) {
+        return evaluate(expression, Object.class, registry);
+    }
+
     /**
      * Parse and evaluate an expression.
      *
@@ -81,13 +85,12 @@ public class VoltExpression {
         Object top = listener.finalOutcome();
         if (top instanceof BigDecimal) {
             BigDecimal bd = (BigDecimal) top;
-            if (bd.scale() > 0) {
-                return type.cast(bd.doubleValue());
+            try {
+                bd.longValueExact();
+                top = bd.setScale(0);
+            } catch (ArithmeticException e) {
+                // ok
             }
-            if (type.equals(Long.class)) {
-                return type.cast(bd.longValue());
-            }
-            return type.cast(bd.intValue());
         }
 
         return type.cast(top);

@@ -38,7 +38,7 @@ public class Expression {
 
         try {
             Instant now = Instant.now();
-            Object result = VoltExpression.evaluate(expression, Object.class, registry);
+            Object result = VoltExpression.evaluate(expression, registry);
             Duration duration = Duration.between(now, Instant.now());
 
             ansiConsole.magenta("Result: ")

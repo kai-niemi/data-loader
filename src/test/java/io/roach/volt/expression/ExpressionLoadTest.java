@@ -1,5 +1,6 @@
 package io.roach.volt.expression;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -33,7 +34,7 @@ public class ExpressionLoadTest {
         IntStream.rangeClosed(1, 30).forEach(value -> {
             tasks.add(() -> {
                 IntStream.range(1, 50_000).forEach(r -> {
-                    VoltExpression.evaluate("pow(2,3)", Double.class, registry);
+                    VoltExpression.evaluate("pow(2,3)", BigDecimal.class, registry);
                     c.incrementAndGet();
                 });
             });

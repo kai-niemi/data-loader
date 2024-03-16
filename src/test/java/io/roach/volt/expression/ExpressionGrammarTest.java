@@ -16,6 +16,21 @@ import org.junit.jupiter.params.provider.Arguments;
 
 public class ExpressionGrammarTest {
     @Test
+    void testExpression() {
+        DefaultExpressionRegistry registry = new DefaultExpressionRegistry();
+        registry.addFunction(FunctionDef.builder()
+                .withId("pow")
+                .withArgs(List.of("arg1", "arg2"))
+                .withFunction(args -> {
+                    Number arg1 = (Number) args[0];
+                    Number arg2 = (Number) args[1];
+                    return Math.pow(arg1.intValue(), arg2.intValue());
+                }).build());
+        BigDecimal result = VoltExpression.evaluate("pow(3,pow(2,1+2))", BigDecimal.class, registry);
+        Assertions.assertEquals(bd(Math.pow(3, Math.pow(2, 1 + 2))), result);
+    }
+
+    @Test
     void simpleExpression() {
         DefaultExpressionRegistry registry = new DefaultExpressionRegistry();
         registry.addVariable("pi", Math.PI);
@@ -30,8 +45,8 @@ public class ExpressionGrammarTest {
                     return Math.pow(arg1.intValue(), arg2.intValue());
                 }).build());
 
-        Double result = VoltExpression.evaluate("2 * pi * r + pow(2,3)", Double.class, registry);
-        Assertions.assertEquals(2 * Math.PI * 25 + Math.pow(2, 3), result);
+        BigDecimal result = VoltExpression.evaluate("2 * pi * r + pow(2,3)", BigDecimal.class, registry);
+        Assertions.assertEquals(2 * Math.PI * 25 + Math.pow(2, 3), result.doubleValue());
     }
 
     @Test
@@ -89,8 +104,8 @@ public class ExpressionGrammarTest {
     @ParameterizedTest
     @VariableSource("arithmetics")
     public void evaluateArithmetics(Object expected, String expression) {
-        Object out = VoltExpression.evaluate(expression);
-        Assertions.assertEquals(expected, out);
+        BigDecimal out = VoltExpression.evaluate(expression, BigDecimal.class);
+        Assertions.assertEquals(new BigDecimal(String.valueOf(expected)).setScale(2), out.setScale(2));
     }
 
     public static Stream<Arguments> stringOperations = Stream.of(
@@ -107,20 +122,20 @@ public class ExpressionGrammarTest {
     }
 
     public static Stream<Arguments> conditionals = Stream.of(
-            Arguments.of(10, "if true then 10 else 20"),
-            Arguments.of(20, "if false then 10 else 20"),
+            Arguments.of(new BigDecimal(10), "if true then 10 else 20"),
+            Arguments.of(new BigDecimal(20), "if false then 10 else 20"),
             Arguments.of("a", "if true then 'a' else 'b'"),
             Arguments.of("b", "if false then 'a' else 'b'"),
-            Arguments.of(100, "if 1>0 then 100 else 200"),
-            Arguments.of(100, "if 1>=0 then 100 else 200"),
-            Arguments.of(100, "if 1>=1 then 100 else 200"),
-            Arguments.of(200, "if 1>=2 then 100 else 200"),
-            Arguments.of(100, "if 1<2 then 100 else 200"),
-            Arguments.of(100, "if 1<=2 then 100 else 200"),
-            Arguments.of(200, "if 1==2 then 100 else 200"),
-            Arguments.of(100, "if 1==1 then 100 else 200"),
-            Arguments.of(1, "if (1+2+3)*4 == 24 then 1 else 0"),
-            Arguments.of(24, "if (1+2+3)*4 == 24 then (1+2+3)*4 else 0"),
+            Arguments.of(new BigDecimal(100), "if 1>0 then 100 else 200"),
+            Arguments.of(new BigDecimal(100), "if 1>=0 then 100 else 200"),
+            Arguments.of(new BigDecimal(100), "if 1>=1 then 100 else 200"),
+            Arguments.of(new BigDecimal(200), "if 1>=2 then 100 else 200"),
+            Arguments.of(new BigDecimal(100), "if 1<2 then 100 else 200"),
+            Arguments.of(new BigDecimal(100), "if 1<=2 then 100 else 200"),
+            Arguments.of(new BigDecimal(200), "if 1==2 then 100 else 200"),
+            Arguments.of(new BigDecimal(100), "if 1==1 then 100 else 200"),
+            Arguments.of(new BigDecimal(1), "if (1+2+3)*4 == 24 then 1 else 0"),
+            Arguments.of(new BigDecimal(24), "if (1+2+3)*4 == 24 then (1+2+3)*4 else 0"),
             Arguments.of("yes", "if {d '2016-01-02'} > {d '2016-01-01'} then 'yes' else 'no'")
     );
 
@@ -144,10 +159,10 @@ public class ExpressionGrammarTest {
             Arguments.of(1, "if x >= -y then 1 else 2"),
             Arguments.of(1, "if -x >= -y then 1 else 2"),
             Arguments.of(2, "if x == y then 1 else 2"),
-            Arguments.of(5.0, "if x != y then x else y"),
-            Arguments.of(10.0, "if x != y then y else x"),
-            Arguments.of(15.0, "if true then x+y else x-y"),
-            Arguments.of(-5.0, "if false then x+y else x-y"),
+            Arguments.of(5, "if x != y then x else y"),
+            Arguments.of(10, "if x != y then y else x"),
+            Arguments.of(15, "if true then x+y else x-y"),
+            Arguments.of(-5, "if false then x+y else x-y"),
             Arguments.of(1, "if 'a' in ('a','b','c') then 1 else 0"),
             Arguments.of(0, "if !'a' in ('a','b','c') then 1 else 0")
     );
@@ -156,11 +171,11 @@ public class ExpressionGrammarTest {
     @VariableSource("conditionalsWithVariables")
     public void evaluateConditionalWithVariables(Object expected, String expression) {
         DefaultExpressionRegistry map = new DefaultExpressionRegistry();
-        map.addVariable("x", new BigDecimal("5.0"));
-        map.addVariable("y", new BigDecimal("10.0"));
+        map.addVariable("x", new BigDecimal("5"));
+        map.addVariable("y", new BigDecimal("10"));
 
         Object out = VoltExpression.evaluate(expression, Object.class, map);
-        Assertions.assertEquals(expected, out);
+        Assertions.assertEquals(new BigDecimal(String.valueOf(expected)), out);
     }
 
     public static Stream<Arguments> literals = Stream.of(
@@ -168,8 +183,7 @@ public class ExpressionGrammarTest {
             Arguments.of(true, "TRUE"),
             Arguments.of(false, "false"),
             Arguments.of(false, "FALSE"),
-            Arguments.of(1, "1"),
-            Arguments.of(1.0, "1.0"),
+            Arguments.of(new BigDecimal(1).setScale(0), "1"),
             Arguments.of("abc", "'abc'"),
             Arguments.of(LocalDate.of(2021, 01, 01), "{d '2021-01-01'}"),
             Arguments.of(LocalTime.of(12, 00, 5), "{t '12:00:05'}"),
@@ -180,7 +194,7 @@ public class ExpressionGrammarTest {
     @VariableSource("literals")
     public void evaluateLiterals(Object expected, String expression) {
         Object out = VoltExpression.evaluate(expression);
-        Assertions.assertEquals(expected, out);
+        Assertions.assertEquals(expected, out, expression);
     }
 
     // a=1.0
@@ -226,8 +240,8 @@ public class ExpressionGrammarTest {
         map.addVariable("d", new BigDecimal("10.0"));
         map.addVariable("e", new BigDecimal("20.0"));
 
-        Double right = VoltExpression.evaluate(expression, Double.class, map);
-        Assertions.assertEquals(expected, right, expression);
+        BigDecimal right = VoltExpression.evaluate(expression, BigDecimal.class, map);
+        Assertions.assertEquals(expected, right.doubleValue(), expression);
     }
 
     public static Stream<Arguments> functionArithmetics = Stream.of(
@@ -275,18 +289,22 @@ public class ExpressionGrammarTest {
         Assertions.assertEquals(expected, out);
     }
 
+    private static BigDecimal bd(double v) {
+        return new BigDecimal(v);
+    }
+
     public static Stream<Arguments> functions = Stream.of(
             Arguments.of("bar", "query('SELECT full_name FROM users ORDER BY id OFFSET ? LIMIT 1')"),
-            Arguments.of(Math.pow(3, Math.pow(2, 1 + 2)), "pow(3,pow(2,1+2))"),
-            Arguments.of(Math.PI, "pi"),
-            Arguments.of(Math.PI * 2, "pi * 2"),
-            Arguments.of(-Math.PI * 2, "-pi * 2"),
-            Arguments.of(1.0, "one()"),
-            Arguments.of(1 + 2, "onePlus(2)"),
-            Arguments.of(-Math.PI, "negate(pi)"),
-            Arguments.of(Math.pow(2, 3), "pow(2,3)"),
-            Arguments.of(Math.pow(-(4 + 3) * 2, 2), "pow(negate((4+3)*2),2)"),
-            Arguments.of(-(Math.PI + Math.PI * 2 + -Math.PI), "negate(add(pi,pi*2,negate(pi)))")
+            Arguments.of(bd(Math.pow(3, Math.pow(2, 1 + 2))), "pow(3,pow(2,1+2))"),
+            Arguments.of(bd(Math.PI), "pi"),
+            Arguments.of(bd(Math.PI * 2), "pi * 2"),
+            Arguments.of(bd(-Math.PI * 2), "-pi * 2"),
+            Arguments.of(bd(1.0), "one()"),
+            Arguments.of(bd(1 + 2), "onePlus(2)"),
+            Arguments.of(bd(-Math.PI), "negate(pi)"),
+            Arguments.of(bd(Math.pow(2, 3)), "pow(2,3)"),
+            Arguments.of(bd(Math.pow(-(4 + 3) * 2, 2)), "pow(negate((4+3)*2),2)"),
+            Arguments.of(bd(-(Math.PI + Math.PI * 2 + -Math.PI)), "negate(add(pi,pi*2,negate(pi)))")
     );
 
     @ParameterizedTest
@@ -337,7 +355,7 @@ public class ExpressionGrammarTest {
                 }).build());
 
         Object out = VoltExpression.evaluate(expression, Object.class, registry);
-        Assertions.assertEquals(expected, out);
+        Assertions.assertEquals(expected, out, expression);
     }
 
     public static Stream<Arguments> illegalExpressions = Stream.of(

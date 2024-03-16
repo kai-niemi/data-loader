@@ -1,11 +1,5 @@
 package io.roach.volt.shell.support;
 
-import io.roach.volt.csv.model.ApplicationModel;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.shell.CompletionContext;
-import org.springframework.shell.CompletionProposal;
-import org.springframework.shell.standard.ValueProvider;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -15,17 +9,18 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.shell.CompletionContext;
+import org.springframework.shell.CompletionProposal;
+import org.springframework.shell.standard.ValueProvider;
+
 import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 
 public class AnotherFileValueProvider implements ValueProvider {
-    @Autowired
-    private ApplicationModel applicationModel;
-
     @Override
     public List<CompletionProposal> complete(CompletionContext completionContext) {
         String input = completionContext.currentWordUpToCursor();
         int lastSlash = input.lastIndexOf(File.separatorChar);
-        Path dir = lastSlash > -1 ? Paths.get(input.substring(0, lastSlash + 1)) : Paths.get(applicationModel.getOutputPath());
+        Path dir = lastSlash > -1 ? Paths.get(input.substring(0, lastSlash + 1)) : Paths.get("");
         String prefix = input.substring(lastSlash + 1);
 
         try {
