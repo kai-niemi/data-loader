@@ -1,8 +1,5 @@
 package io.roach.volt.config;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.aop.interceptor.SimpleAsyncUncaughtExceptionHandler;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +13,9 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.context.request.async.CallableProcessingInterceptor;
 import org.springframework.web.context.request.async.TimeoutCallableProcessingInterceptor;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 @Configuration
 @EnableAspectJAutoProxy
 @EnableAsync
@@ -28,11 +28,15 @@ public class AsyncConfiguration implements AsyncConfigurer {
      */
     @Override
     public AsyncTaskExecutor getAsyncExecutor() {
+        return asyncTaskExecutor();
+    }
+
+    @Bean(name = "asyncTaskExecutor", destroyMethod = "shutdown")
+    public ThreadPoolTaskExecutor asyncTaskExecutor() {
+        int poolSize = threadPoolSize > 0 ? threadPoolSize : Runtime.getRuntime().availableProcessors();
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5);
-//                threadPoolSize > 0 ? threadPoolSize : Runtime.getRuntime().availableProcessors());
-        executor.setMaxPoolSize(5);
-//        executor.setQueueCapacity(5);
+        executor.setCorePoolSize(poolSize);
+        executor.setMaxPoolSize(poolSize * 2);
 
         executor.setThreadNamePrefix("async-");
         executor.setAwaitTerminationSeconds(5);
@@ -46,11 +50,11 @@ public class AsyncConfiguration implements AsyncConfigurer {
 
     @Bean(name = "threadPoolTaskExecutor", destroyMethod = "shutdown")
     public ThreadPoolTaskExecutor threadPoolTaskExecutor() {
+        int poolSize = threadPoolSize > 0 ? threadPoolSize : Runtime.getRuntime().availableProcessors();
+
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(threadPoolSize > 0
-                ? threadPoolSize : Runtime.getRuntime().availableProcessors());
-        executor.setMaxPoolSize(100);
-        executor.setQueueCapacity(100 / 4);
+        executor.setCorePoolSize(poolSize);
+        executor.setMaxPoolSize(poolSize * 2);
 
         executor.setThreadNamePrefix("pool-");
         executor.setAwaitTerminationSeconds(5);

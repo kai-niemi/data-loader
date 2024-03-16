@@ -55,8 +55,7 @@ public class LifeCycleListener extends AbstractEventPublisher {
         ProducerProgressEvent progressEvent = event.getTarget();
 
         if (progressEvent.getTotal() > 0) {
-            AsciiArt.progressBar(
-                    console.getTerminal(),
+            console.progressBar(
                     progressEvent.getPosition(),
                     progressEvent.getTotal(),
                     progressEvent.getLabel(),

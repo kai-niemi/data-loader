@@ -43,10 +43,7 @@ public class Money implements Serializable, Comparable<Money> {
             if (currency.getDefaultFractionDigits() == 0) {
                 amount = amount.setScale(0, RoundingMode.DOWN);
             } else {
-                throw new IllegalArgumentException("Wrong number of fraction digits for currency: "
-                        + currency.getCurrencyCode() + "(" + currency.getDisplayName() + "): "
-                        + amount.scale()
-                        + " != " + currency.getDefaultFractionDigits() + " for " + amount);
+                amount = amount.setScale(currency.getDefaultFractionDigits(), RoundingMode.HALF_EVEN);
             }
         }
         this.amount = amount;

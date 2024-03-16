@@ -77,6 +77,14 @@ public class RandomData {
         }
     }
 
+    public static Money randomMoney() {
+        return Money.of(randomBigDecimal(), randomCurrency());
+    }
+
+    public static Money randomMoney(String currency) {
+        return Money.of(randomBigDecimal(), currency);
+    }
+
     public static boolean randomBoolean() {
         return ThreadLocalRandom.current().nextBoolean();
     }
@@ -177,20 +185,21 @@ public class RandomData {
     }
 
     public static String randomPhoneNumber() {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
         StringBuilder sb = new StringBuilder()
                 .append("(")
-                .append(ThreadLocalRandom.current().nextInt(9) + 1);
+                .append(random.nextInt(9) + 1);
         for (int i = 0; i < 2; i++) {
-            sb.append(ThreadLocalRandom.current().nextInt(10));
+            sb.append(random.nextInt(10));
         }
         sb.append(") ")
-                .append(ThreadLocalRandom.current().nextInt(9) + 1);
+                .append(random.nextInt(9) + 1);
         for (int i = 0; i < 2; i++) {
-            sb.append(ThreadLocalRandom.current().nextInt(10));
+            sb.append(random.nextInt(10));
         }
         sb.append("-");
         for (int i = 0; i < 4; i++) {
-            sb.append(ThreadLocalRandom.current().nextInt(10));
+            sb.append(random.nextInt(10));
         }
         return sb.toString();
     }
@@ -213,8 +222,9 @@ public class RandomData {
 
     public static String randomZipCode() {
         StringBuilder sb = new StringBuilder();
+        ThreadLocalRandom random = ThreadLocalRandom.current();
         for (int i = 0; i < 5; i++) {
-            sb.append(ThreadLocalRandom.current().nextInt(10));
+            sb.append(random.nextInt(10));
         }
         return sb.toString();
     }
@@ -289,11 +299,12 @@ public class RandomData {
     public static String randomString(int min) {
         StringBuilder sb = new StringBuilder();
         boolean vowelStart = true;
+        ThreadLocalRandom random = ThreadLocalRandom.current();
         for (int i = 0; i < min; i++) {
             if (vowelStart) {
-                sb.append(VOWELS[(int) (ThreadLocalRandom.current().nextDouble() * VOWELS.length)]);
+                sb.append(VOWELS[(int) (random.nextDouble() * VOWELS.length)]);
             } else {
-                sb.append(CONSONANTS[(int) (ThreadLocalRandom.current().nextDouble() * CONSONANTS.length)]);
+                sb.append(CONSONANTS[(int) (random.nextDouble() * CONSONANTS.length)]);
             }
             vowelStart = !vowelStart;
         }
@@ -343,8 +354,10 @@ public class RandomData {
 
         public String getParagraphs(int min, int max) {
             StringBuilder sb = new StringBuilder();
+            ThreadLocalRandom random = ThreadLocalRandom.current();
+
             for (int j = 0; j < getCount(min, max); j++) {
-                for (int i = 0; i < ThreadLocalRandom.current().nextInt(5) + 2; i++) {
+                for (int i = 0; i < random.nextInt(5) + 2; i++) {
                     sb.append(StringUtils.capitalize(getWords(1, false)))
                             .append(getWords(getCount(2, 20), false))
                             .append(". ");
@@ -366,8 +379,9 @@ public class RandomData {
             StringBuilder sb = new StringBuilder();
 
             int wordCount = 0;
+            ThreadLocalRandom random = ThreadLocalRandom.current();
             while (wordCount < count) {
-                String word = lorem.get(ThreadLocalRandom.current().nextInt(lorem.size()));
+                String word = lorem.get(random.nextInt(lorem.size()));
                 if (capitalize) {
                     if (wordCount == 0 || word.length() > 3) {
                         word = StringUtils.capitalize(word);
@@ -394,11 +408,11 @@ public class RandomData {
     private static final char[] hexChars = "0123456789abcdef".toCharArray();
 
     public static String randomIPv6() {
-        ThreadLocalRandom r = ThreadLocalRandom.current();
+        ThreadLocalRandom random = ThreadLocalRandom.current();
         StringJoiner joiner = new StringJoiner(":");
         IntStream.range(0, 8).mapToObj(i -> new StringBuilder()).forEach(b -> {
             IntStream.rangeClosed(1, 4).forEach(value ->
-                    b.append(hexChars[r.nextInt(0, 16)]));
+                    b.append(hexChars[random.nextInt(0, 16)]));
             joiner.add(b.toString());
         });
         return joiner.toString();

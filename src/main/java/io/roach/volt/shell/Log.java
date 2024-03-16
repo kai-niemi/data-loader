@@ -27,13 +27,19 @@ public class Log {
         setLogLevel("io.roach.volt", Level.INFO, Level.DEBUG);
     }
 
+    @ShellMethod(value = "Toggle progress bar", key = {"toggle-progress", "tp"})
+    public void toggleProgressBar() {
+        boolean onOff = ansiConsole.toggleProgressBar();
+        ansiConsole.blue("Progress bar %s", onOff ? "on" : "off").nl();
+    }
+
     private Level setLogLevel(String name, Level precondition, Level newLevel) {
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
         Logger logger = loggerContext.getLogger(name);
         setLogLevel(logger, logger.getEffectiveLevel().isGreaterOrEqual(precondition) ? newLevel : precondition);
         return logger.getLevel();
     }
-    
+
     private Level setLogLevel(Logger logger, Level newLevel) {
         logger.setLevel(newLevel);
         ansiConsole.blue("'%s' level set to %s\n", logger.getName(), logger.getLevel());

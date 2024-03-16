@@ -76,6 +76,10 @@ public class ProducerListener extends AbstractEventPublisher {
     @Async
     @EventListener
     public CompletableFuture<Integer> onStartEvent(GenericEvent<ProduceStartEvent> event) {
+        if (cancellationRequested.get()) {
+            return CompletableFuture.completedFuture(0);
+        }
+
         final Table table = event.getTarget().getTable();
         final Path path = event.getTarget().getPath();
         final AtomicInteger currentRow = new AtomicInteger();
@@ -113,10 +117,6 @@ public class ProducerListener extends AbstractEventPublisher {
 
             producer.produce(publisher, (values, rowEstimate) -> {
                 if (cancellationRequested.get()) {
-                    console.blue("Cancelling producer for '%s' at %,d of %,d rows"
-                            .formatted(path.getFileName().toString(),
-                                    currentRow.get(),
-                                    rowEstimate)).nl();
                     return false;
                 }
 

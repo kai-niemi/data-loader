@@ -24,6 +24,10 @@ public class SystemInfo {
     private ThreadPoolTaskExecutor threadPoolExecutor;
 
     @Autowired
+    @Qualifier("asyncTaskExecutor")
+    private ThreadPoolTaskExecutor asyncThreadPoolExecutor;
+
+    @Autowired
     private AnsiConsole ansiConsole;
 
     @ShellMethod(value = "Print local system information", key = {"system-info", "si"})
@@ -61,45 +65,21 @@ public class SystemInfo {
         ansiConsole.cyan(" Pending GC: %s\n", m.getObjectPendingFinalizationCount());
     }
 
-    @ShellMethod(value = "Print thread pool stats", key = {"pool-stats", "ps"})
+    @ShellMethod(value = "Print thread pool metrics", key = {"pool-stats", "ps"})
     public void poolStats() {
-        ThreadPoolStats threadPoolStats = ThreadPoolStats.from(threadPoolExecutor.getThreadPoolExecutor());
-        ansiConsole.yellow(">> Thread Pool Status:\n");
-        ansiConsole.cyan("running: %s\n", threadPoolExecutor.isRunning());
-        ansiConsole.cyan("poolSize: %s\n", threadPoolStats.poolSize);
-        ansiConsole.cyan("maximumPoolSize: %s\n", threadPoolStats.maximumPoolSize);
-        ansiConsole.cyan("corePoolSize: %s\n", threadPoolStats.corePoolSize);
-        ansiConsole.cyan("activeCount: %s\n", threadPoolStats.activeCount);
-        ansiConsole.cyan("completedTaskCount: %s\n", threadPoolStats.completedTaskCount);
-        ansiConsole.cyan("taskCount: %s\n", threadPoolStats.taskCount);
-        ansiConsole.cyan("largestPoolSize: %s\n", threadPoolStats.largestPoolSize);
+        print("Task Executor Pool", threadPoolExecutor.getThreadPoolExecutor());
+        print("Async Executor Pool", asyncThreadPoolExecutor.getThreadPoolExecutor());
     }
 
-    static class ThreadPoolStats {
-        public static ThreadPoolStats from(ThreadPoolExecutor pool) {
-            ThreadPoolStats instance = new ThreadPoolStats();
-            instance.corePoolSize = pool.getCorePoolSize();
-            instance.poolSize = pool.getPoolSize();
-            instance.maximumPoolSize = pool.getMaximumPoolSize();
-            instance.activeCount = pool.getActiveCount();
-            instance.taskCount = pool.getTaskCount();
-            instance.largestPoolSize = pool.getLargestPoolSize();
-            instance.completedTaskCount = pool.getCompletedTaskCount();
-            return instance;
-        }
-
-        public int maximumPoolSize;
-
-        public int poolSize;
-
-        public int activeCount;
-
-        public long corePoolSize;
-
-        public long taskCount;
-
-        public int largestPoolSize;
-
-        public long completedTaskCount;
+    private void print(String pool, ThreadPoolExecutor tpe) {
+        ansiConsole.yellow(">> %s:\n", pool);
+        ansiConsole.cyan("running: %s\n", threadPoolExecutor.isRunning());
+        ansiConsole.cyan("poolSize: %s\n", tpe.getPoolSize());
+        ansiConsole.cyan("maximumPoolSize: %s\n", tpe.getMaximumPoolSize());
+        ansiConsole.cyan("corePoolSize: %s\n", tpe.getCorePoolSize());
+        ansiConsole.cyan("activeCount: %s\n", tpe.getActiveCount());
+        ansiConsole.cyan("completedTaskCount: %s\n", tpe.getCompletedTaskCount());
+        ansiConsole.cyan("taskCount: %s\n", tpe.getTaskCount());
+        ansiConsole.cyan("largestPoolSize: %s\n", tpe.getLargestPoolSize());
     }
 }

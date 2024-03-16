@@ -2,7 +2,7 @@ model:
   outputPath: ".output"
   tables:
     - name: "customer"
-      count: "100"
+      count: "100k"
       files: "1"
       columns:
         - name: "id"

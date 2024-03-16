@@ -70,8 +70,7 @@ public class Sort extends AbstractEventPublisher {
                 .withDelimiter(delimiter)
                 .withReplace(!skipReplace)
                 .withProgressConsumer((progress) -> {
-                    AsciiArt.progressBar(
-                            console.getTerminal(),
+                    console.progressBar(
                             progress.getCurrent(),
                             progress.getTotal(),
                             progress.getNote());
@@ -99,8 +98,7 @@ public class Sort extends AbstractEventPublisher {
                 .withInputFile(Paths.get(inputFile))
                 .withDelete(!skipDelete)
                 .withProgressConsumer((progress) -> {
-                    AsciiArt.progressBar(
-                            console.getTerminal(),
+                    console.progressBar(
                             progress.getCurrent(),
                             progress.getTotal(),
                             progress.getNote());
@@ -150,8 +148,7 @@ public class Sort extends AbstractEventPublisher {
                 .withOutputFile(Paths.get(outputFile))
                 .withLinesToSkip(linesToSkip)
                 .withProgressConsumer((progress) -> {
-                    AsciiArt.progressBar(
-                            console.getTerminal(),
+                    console.progressBar(
                             progress.getCurrent(),
                             progress.getTotal(),
                             progress.getNote());

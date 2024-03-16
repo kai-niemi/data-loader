@@ -1,5 +1,6 @@
 package io.roach.volt.expression;
 
+import io.roach.volt.util.Money;
 import io.roach.volt.util.Networking;
 import io.roach.volt.util.RandomData;
 import io.roach.volt.util.wgs.Latitude;
@@ -257,6 +258,19 @@ public final class ExpressionRegistryBuilder {
                 })
                 .build());
 
+        registry.addFunction(FunctionDef.builder()
+                .withCategory("random")
+                .withId("randomMoney")
+                .withDescription("Generate a pseudorandom Money value")
+                .withReturnValue(Money.class)
+                .withFunction(args -> {
+                    if (args.length > 0) {
+                        String arg1 = (String) args[0];
+                        return RandomData.randomMoney(arg1);
+                    }
+                    return RandomData.randomMoney();
+                })
+                .build());
         registry.addFunction(FunctionDef.builder()
                 .withCategory("random")
                 .withId("randomBoolean")
