@@ -92,10 +92,11 @@ public class ImportIntoHelper {
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
 
-        ansiConsole.blue("Created '%s' in topological order: %s"
+        ansiConsole.blue("Created import file '%s' with topological table order [%s]"
                 .formatted(importFilePath,
                         StringUtils.collectionToCommaDelimitedString(
-                                paths.keySet().stream().map(Table::getName).collect(Collectors.toList())))
+                                paths.keySet().stream().map(Table::getName)
+                                        .collect(Collectors.toList())))
         ).nl();
     }
 
@@ -143,8 +144,8 @@ public class ImportIntoHelper {
                 if (!f.get()) {
                     sb.append(", ");
                 }
+                sb.append(k);
                 if (StringUtils.hasLength(v)) {
-                    sb.append(k);
                     if (!"null".equalsIgnoreCase(v)) {
                         sb.append(" = '").append(v).append("'");
                     }

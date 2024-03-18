@@ -58,6 +58,16 @@ public class RandomData {
 
     private static final List<String> lorem = new ArrayList<>();
 
+    private static List<String> readLines(String path) {
+        try (InputStream resource = new ClassPathResource(path).getInputStream();
+             BufferedReader reader = new BufferedReader(new InputStreamReader(resource))) {
+            return reader.lines().collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("", e);
+            return Collections.emptyList();
+        }
+    }
+
     static {
         firstNames.addAll(readLines("random/firstnames.txt"));
         lastNames.addAll(readLines(("random/surnames.txt")));
@@ -66,15 +76,14 @@ public class RandomData {
         stateCodes.addAll(readLines(("random/state_code.txt")));
         lorem.addAll(readLines(("random/lorem.txt")));
 
-        for (Locale locale : Locale.getAvailableLocales()) {
-            if (StringUtils.hasLength(locale.getDisplayCountry(Locale.US))) {
-                countries.add(locale.getDisplayCountry(Locale.US));
-            }
-        }
+        Arrays.stream(Locale.getAvailableLocales())
+                .filter(locale -> StringUtils.hasLength(locale.getDisplayCountry(Locale.US)))
+                .map(locale -> locale.getDisplayCountry(Locale.US))
+                .forEach(countries::add);
 
-        for (Currency currency : Currency.getAvailableCurrencies()) {
-            currencies.add(currency.getCurrencyCode());
-        }
+        Currency.getAvailableCurrencies().stream()
+                .map(Currency::getCurrencyCode)
+                .forEach(currencies::add);
     }
 
     public static Money randomMoney() {
@@ -129,16 +138,6 @@ public class RandomData {
     public static BigDecimal randomBigDecimal(double origin, double bound, int scale) {
         return BigDecimal.valueOf(ThreadLocalRandom.current().nextDouble(origin, bound))
                 .setScale(scale, RoundingMode.HALF_UP);
-    }
-
-    private static List<String> readLines(String path) {
-        try (InputStream resource = new ClassPathResource(path).getInputStream();
-             BufferedReader reader = new BufferedReader(new InputStreamReader(resource))) {
-            return reader.lines().collect(Collectors.toList());
-        } catch (IOException e) {
-            logger.error("", e);
-        }
-        return Collections.emptyList();
     }
 
     public static <E> E selectRandom(List<E> collection) {
@@ -296,15 +295,37 @@ public class RandomData {
         return decoder.decode(text);
     }
 
+    public static String randomString(int min, int max) {
+        int leftLimit = 48; // numeral '0'
+        int rightLimit = 122; // letter 'z'
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        return random.ints(leftLimit, rightLimit + 1)
+                .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
+                .limit(random.nextInt(min, max))
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
+    }
+
     public static String randomString(int min) {
+        int leftLimit = 48; // numeral '0'
+        int rightLimit = 122; // letter 'z'
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        return random.ints(leftLimit, rightLimit + 1)
+                .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
+                .limit(min)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
+    }
+
+    public static String randomWord(int min) {
         StringBuilder sb = new StringBuilder();
         boolean vowelStart = true;
         ThreadLocalRandom random = ThreadLocalRandom.current();
         for (int i = 0; i < min; i++) {
             if (vowelStart) {
-                sb.append(VOWELS[(int) (random.nextDouble() * VOWELS.length)]);
+                sb.append(VOWELS[random.nextInt(VOWELS.length)]);
             } else {
-                sb.append(CONSONANTS[(int) (random.nextDouble() * CONSONANTS.length)]);
+                sb.append(CONSONANTS[random.nextInt(CONSONANTS.length)]);
             }
             vowelStart = !vowelStart;
         }

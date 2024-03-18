@@ -44,7 +44,7 @@ public class LifeCycleListener extends AbstractEventPublisher {
                             event.getTarget().getTable().getFinalCount()))
                     .nl();
         } else {
-            console.blue("Started generating '%s' with unspecified rows".formatted(
+            console.blue("Started generating '%s' with unknown rows".formatted(
                             event.getTarget().getPath().getFileName()))
                     .nl();
         }

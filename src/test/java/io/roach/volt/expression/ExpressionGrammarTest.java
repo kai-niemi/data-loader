@@ -38,11 +38,11 @@ public class ExpressionGrammarTest {
                     return Math.pow(arg1.intValue(), arg2.intValue());
                 }).build());
 
-        BigDecimal result = VoltExpression.evaluate("2 * pi * r + pow(2,3)", BigDecimal.class, registry);
+        BigDecimal result = Expression.evaluate("2 * pi * r + pow(2,3)", BigDecimal.class, registry);
 
         Assertions.assertEquals(2 * Math.PI * 25 + Math.pow(2, 3), result.doubleValue());
 
-        BigDecimal result2 = VoltExpression.evaluate("x + y", BigDecimal.class, registry);
+        BigDecimal result2 = Expression.evaluate("x + y", BigDecimal.class, registry);
 
         Assertions.assertEquals(new BigDecimal("12322332232332.32323223").multiply(new BigDecimal("2")), result2);
     }
@@ -64,7 +64,7 @@ public class ExpressionGrammarTest {
                 }).build());
 
         IntStream.rangeClosed(1, 20).forEach(value -> {
-            String result = VoltExpression.evaluate(
+            String result = Expression.evaluate(
                     "query('SELECT full_name FROM users ORDER BY id OFFSET ? LIMIT 1', rowOffset() % 10)",
                     String.class, registry);
             System.out.printf("Result for #%d: %s\n", value, result);
@@ -102,7 +102,7 @@ public class ExpressionGrammarTest {
     @ParameterizedTest
     @VariableSource("arithmetics")
     public void testArithmeticExpressions(Object expected, String expression) {
-        BigDecimal out = VoltExpression.evaluate(expression, BigDecimal.class);
+        BigDecimal out = Expression.evaluate(expression, BigDecimal.class);
         Assertions.assertEquals(new BigDecimal(String.valueOf(expected)).setScale(2), out.setScale(2));
     }
 
@@ -115,7 +115,7 @@ public class ExpressionGrammarTest {
     @ParameterizedTest
     @VariableSource("stringOperations")
     public void testStringExpressions(Object expected, String expression) {
-        Object out = VoltExpression.evaluate(expression);
+        Object out = Expression.evaluate(expression);
         Assertions.assertEquals(expected, out);
     }
 
@@ -140,7 +140,7 @@ public class ExpressionGrammarTest {
     @ParameterizedTest
     @VariableSource("conditionals")
     public void testConditionalExpressions(Object expected, String expression) {
-        Object out = VoltExpression.evaluate(expression);
+        Object out = Expression.evaluate(expression);
         Assertions.assertEquals(expected, out);
     }
 
@@ -172,7 +172,7 @@ public class ExpressionGrammarTest {
         map.addVariable("x", new BigDecimal("5"));
         map.addVariable("y", new BigDecimal("10"));
 
-        Object out = VoltExpression.evaluate(expression, Object.class, map);
+        Object out = Expression.evaluate(expression, Object.class, map);
         Assertions.assertEquals(new BigDecimal(String.valueOf(expected)), out);
     }
 
@@ -191,7 +191,7 @@ public class ExpressionGrammarTest {
     @ParameterizedTest
     @VariableSource("literals")
     public void testLiteralExpressions(Object expected, String expression) {
-        Object out = VoltExpression.evaluate(expression);
+        Object out = Expression.evaluate(expression);
         Assertions.assertEquals(expected, out, expression);
     }
 
@@ -233,7 +233,7 @@ public class ExpressionGrammarTest {
         map.addVariable("d", new BigDecimal("10.0"));
         map.addVariable("e", new BigDecimal("20.0"));
 
-        BigDecimal right = VoltExpression.evaluate(expression, BigDecimal.class, map);
+        BigDecimal right = Expression.evaluate(expression, BigDecimal.class, map);
         Assertions.assertEquals(expected, right.doubleValue(), expression);
     }
 
@@ -278,7 +278,7 @@ public class ExpressionGrammarTest {
                     return "Donald";
                 }).build());
 
-        Object out = VoltExpression.evaluate(expression, Object.class, map);
+        Object out = Expression.evaluate(expression, Object.class, map);
         Assertions.assertEquals(expected, out);
     }
 
@@ -341,7 +341,7 @@ public class ExpressionGrammarTest {
                     return "bar";
                 }).build());
 
-        Object out = VoltExpression.evaluate(expression, Object.class, registry);
+        Object out = Expression.evaluate(expression, Object.class, registry);
         Assertions.assertEquals(expected, out, expression);
     }
 
@@ -371,6 +371,6 @@ public class ExpressionGrammarTest {
     @ParameterizedTest
     @VariableSource("illegalExpressions")
     public void testIllegalExpressions(Object expected, String expression) {
-        Assertions.assertEquals(expected, VoltExpression.isValid(expression));
+        Assertions.assertEquals(expected, Expression.isValid(expression));
     }
 }

@@ -54,6 +54,8 @@ public class DataSourceConfiguration {
                 .initializeDataSourceBuilder()
                 .type(HikariDataSource.class)
                 .build();
+//        ds.setReadOnly(true);
+        ds.setAutoCommit(true);
         ds.addDataSourceProperty("application_name", "volt");
         return ds;
     }

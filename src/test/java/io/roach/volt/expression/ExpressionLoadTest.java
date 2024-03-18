@@ -34,7 +34,7 @@ public class ExpressionLoadTest {
         IntStream.rangeClosed(1, 30).forEach(value -> {
             tasks.add(() -> {
                 IntStream.range(1, 50_000).forEach(r -> {
-                    VoltExpression.evaluate("pow(2,3)", BigDecimal.class, registry);
+                    Expression.evaluate("pow(2,3)", BigDecimal.class, registry);
                     c.incrementAndGet();
                 });
             });

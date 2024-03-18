@@ -20,8 +20,8 @@ public class Exit implements Quit.Command {
 
     @ShellMethod(value = "Exit the shell", key = {"q", "x", "quit", "exit"})
     public void exit() {
-        ansiConsole.magenta("Bye!").nl();
         applicationContext.close();
+        ansiConsole.magenta("Bye!").nl();
         System.exit(0);
     }
 }

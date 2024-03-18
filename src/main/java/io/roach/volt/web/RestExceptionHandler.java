@@ -13,6 +13,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.nio.file.NoSuchFileException;
 import java.util.Objects;
 
 @RestControllerAdvice
@@ -38,6 +39,14 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(FileNotFoundException.class)
     public ProblemDetail handleFileNotFoundException(FileNotFoundException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND,
+                ex.getMessage());
+        problemDetail.setTitle("File Not Found");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(NoSuchFileException.class)
+    public ProblemDetail handleNoSuchFileException(NoSuchFileException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND,
                 ex.getMessage());
         problemDetail.setTitle("File Not Found");

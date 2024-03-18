@@ -159,7 +159,6 @@ public final class ExpressionRegistryBuilder {
                             : -random.nextDouble(0, 180);
                 })
                 .build());
-
         registry.addFunction(FunctionDef.builder()
                 .withCategory("random")
                 .withId("randomFirstName")
@@ -261,7 +260,7 @@ public final class ExpressionRegistryBuilder {
         registry.addFunction(FunctionDef.builder()
                 .withCategory("random")
                 .withId("randomMoney")
-                .withDescription("Generate a pseudorandom Money value")
+                .withDescription("Generate a random Money value (decimal_amount currency)")
                 .withReturnValue(Money.class)
                 .withFunction(args -> {
                     if (args.length > 0) {
@@ -329,12 +328,34 @@ public final class ExpressionRegistryBuilder {
         registry.addFunction(FunctionDef.builder()
                 .withCategory("random")
                 .withId("randomString")
-                .withArgs(List.of("length: int"))
-                .withDescription("Generate a word.)")
+                .withArgs(List.of("min: int", "(optional) max: int"))
+                .withDescription("Generate a random string.)")
                 .withReturnValue(String.class)
                 .withFunction(args -> {
                     Number arg1 = (Number) args[0];
+                    if (args.length == 2) {
+                        Number arg2 = (Number) args[1];
+                        return RandomData.randomString(arg1.intValue(), arg2.intValue());
+                    }
                     return RandomData.randomString(arg1.intValue());
+                })
+                .build());
+        registry.addFunction(FunctionDef.builder()
+                .withCategory("random")
+                .withId("randomRoachFact")
+                .withDescription("Generate a random roach fact.)")
+                .withReturnValue(String.class)
+                .withFunction(args -> RandomData.randomRoachFact())
+                .build());
+        registry.addFunction(FunctionDef.builder()
+                .withCategory("random")
+                .withId("randomWord")
+                .withArgs(List.of("length: int"))
+                .withDescription("Generate a random word.)")
+                .withReturnValue(String.class)
+                .withFunction(args -> {
+                    Number arg1 = (Number) args[0];
+                    return RandomData.randomWord(arg1.intValue());
                 })
                 .build());
         registry.addFunction(FunctionDef.builder()
@@ -546,7 +567,7 @@ public final class ExpressionRegistryBuilder {
                 .withCategory("sql")
                 .withId("selectOne")
                 .withArgs(List.of("query: string", "args: object[]"))
-                .withDescription("Execute a SQL query with a single row result.")
+                .withDescription("Execute a read-only SQL query with a single row result.")
                 .withReturnValue(Object.class)
                 .withFunction(SupportFunctions.selectOne(dataSource))
                 .build());

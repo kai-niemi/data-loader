@@ -1,9 +1,9 @@
 package io.roach.volt.shell;
 
+import io.roach.volt.expression.Expression;
 import io.roach.volt.expression.ExpressionException;
 import io.roach.volt.expression.ExpressionRegistry;
 import io.roach.volt.expression.ExpressionRegistryBuilder;
-import io.roach.volt.expression.VoltExpression;
 import io.roach.volt.shell.support.AnsiConsole;
 import io.roach.volt.shell.support.FunctionValueProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,7 @@ import java.time.Instant;
 
 @ShellComponent
 @ShellCommandGroup(CommandGroups.EXPR)
-public class Expression {
+public class ExpressionCommand {
     @Autowired
     private DataSource dataSource;
 
@@ -38,7 +38,7 @@ public class Expression {
 
         try {
             Instant now = Instant.now();
-            Object result = VoltExpression.evaluate(expression, registry);
+            Object result = Expression.evaluate(expression, registry);
             Duration duration = Duration.between(now, Instant.now());
 
             ansiConsole.magenta("Result: ")

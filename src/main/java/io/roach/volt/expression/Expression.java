@@ -12,7 +12,7 @@ import org.springframework.util.StringUtils;
  *
  * @author Kai Niemi
  */
-public class VoltExpression {
+public class Expression {
     public static final ExpressionRegistry EMPTY_REGISTRY = new DefaultExpressionRegistry();
 
     /**

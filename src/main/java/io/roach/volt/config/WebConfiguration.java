@@ -1,6 +1,7 @@
 package io.roach.volt.config;
 
 import io.roach.volt.web.LinkRelations;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -27,7 +28,7 @@ import org.springframework.web.util.pattern.PathPatternParser;
 @Profile(ProfileNames.PROXY)
 public class WebConfiguration {
     @Bean
-    public WebMvcConfigurer webMvcConfigurer(AsyncTaskExecutor taskExecutor,
+    public WebMvcConfigurer webMvcConfigurer(@Qualifier("asyncTaskExecutor") AsyncTaskExecutor taskExecutor,
                                              CallableProcessingInterceptor callableProcessingInterceptor) {
         return new WebMvcConfigurer() {
             @Override

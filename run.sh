@@ -24,6 +24,11 @@ fn_print_cyan(){
 	echo -en "\n"
 }
 
+fn_print_magenta(){
+  echo -en "${creeol}${magenta}$@${default}"
+	echo -en "\n"
+}
+
 fn_print_blue(){
   echo -en "${creeol}${lightblue}$@${default}"
 	echo -en "\n"
@@ -31,6 +36,7 @@ fn_print_blue(){
 
 basedir=.
 jarfile=${basedir}/target/volt.jar
+profiles=
 
 if [ ! -f "$jarfile" ]; then
     ./mvnw clean install
@@ -49,24 +55,17 @@ select option in "${options[@]}" "<Quit>";  do
       exit 0
       ;;
     *)
-      fn_print_cyan "You chose: $option"
       ;;
   esac
 done
+
+fn_print_cyan "Selected profiles: $profiles"
 
 PS3='Please select additional profiles: '
 options=( "proxy" "dev" "<Start>" "<Quit>" )
 
 select option in "${options[@]}"; do
   case $option in
-    "proxy")
-      profiles=$profiles,$option
-      fn_print_cyan "You chose: $option (press enter)"
-      ;;
-    "dev")
-      profiles=$profiles,$option
-      fn_print_cyan "You chose: $option (press enter)"
-      ;;
     "<Start>")
       break
       ;;
@@ -74,7 +73,8 @@ select option in "${options[@]}"; do
       exit 0
       ;;
     *)
-      fn_print_cyan "You chose: $option"
+      profiles=$profiles,$option
+      fn_print_cyan "Selected profiles: $profiles (press enter)"
       ;;
   esac
 done

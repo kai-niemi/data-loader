@@ -1,5 +1,7 @@
 package io.roach.volt.expression;
 
+import org.springframework.boot.actuate.endpoint.SanitizableData;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,17 +23,21 @@ public abstract class SupportFunctions {
             String query = (String) argsList.pop();
 
             List<Object> result = new ArrayList<>();
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(query)) {
+            try (Connection conn = dataSource.getConnection()) {
+                conn.setReadOnly(true);
+                conn.setAutoCommit(true);
 
-                int col = 1;
-                for (Object a : argsList) {
-                    ps.setObject(col++, a);
-                }
+                //noinspection SqlSourceToSinkFlow
+                try (PreparedStatement ps = conn.prepareStatement(query)) {
+                    int col = 1;
+                    for (Object a : argsList) {
+                        ps.setObject(col++, a);
+                    }
 
-                try (ResultSet res = ps.executeQuery()) {
-                    while (res.next()) {
-                        result.add(res.getObject(1));
+                    try (ResultSet res = ps.executeQuery()) {
+                        while (res.next()) {
+                            result.add(res.getObject(1));
+                        }
                     }
                 }
             } catch (SQLException e) {

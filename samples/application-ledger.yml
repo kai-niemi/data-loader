@@ -1,5 +1,5 @@
 model:
-  output-path: output
+  output-path: .output
   tables:
     - name: customer
       count: 10

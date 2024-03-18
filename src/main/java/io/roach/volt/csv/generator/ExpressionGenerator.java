@@ -2,7 +2,7 @@ package io.roach.volt.csv.generator;
 
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.expression.ExpressionRegistry;
-import io.roach.volt.expression.VoltExpression;
+import io.roach.volt.expression.Expression;
 import org.springframework.util.StringUtils;
 
 public class ExpressionGenerator implements ColumnGenerator<Object> {
@@ -19,7 +19,7 @@ public class ExpressionGenerator implements ColumnGenerator<Object> {
     public Object nextValue() {
         String expression = column.getExpression();
         if (StringUtils.hasLength(expression)) {
-            return VoltExpression.evaluate(expression, Object.class, registry);
+            return Expression.evaluate(expression, Object.class, registry);
         }
         throw new IllegalStateException("Undefined column value generator for: "
                 + column.getName());

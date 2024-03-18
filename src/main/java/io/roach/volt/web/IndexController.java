@@ -79,6 +79,9 @@ public class IndexController {
         index.setNotice(RandomData.randomRoachFact());
 
         final Path basePath = Paths.get(applicationModel.getOutputPath());
+        if (!Files.isDirectory(basePath)) {
+            return ResponseEntity.ok(index);
+        }
 
         List<Path> importFiles = new ArrayList<>();
 
