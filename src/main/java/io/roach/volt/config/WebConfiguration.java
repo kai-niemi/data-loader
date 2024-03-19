@@ -28,7 +28,7 @@ import org.springframework.web.util.pattern.PathPatternParser;
 @Profile(ProfileNames.PROXY)
 public class WebConfiguration {
     @Bean
-    public WebMvcConfigurer webMvcConfigurer(@Qualifier("asyncTaskExecutor") AsyncTaskExecutor taskExecutor,
+    public WebMvcConfigurer webMvcConfigurer(@Qualifier("threadPoolTaskExecutor") AsyncTaskExecutor taskExecutor,
                                              CallableProcessingInterceptor callableProcessingInterceptor) {
         return new WebMvcConfigurer() {
             @Override

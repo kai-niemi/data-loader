@@ -13,7 +13,7 @@ public class Position {
 
     /**
      * Calculates the haversine (great-circle) distance in meters between two points on a
-     * spherical object, such as the earth (acually earth is an ellipsoid, but whatever).
+     * spherical object, such as the earth (actually earth is an ellipsoid, but whatever).
      * <p>
      * <a href="https://en.wikipedia.org/wiki/Haversine_formula">Haversine Formula</a>
      *

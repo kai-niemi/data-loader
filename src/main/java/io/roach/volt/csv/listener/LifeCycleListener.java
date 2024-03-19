@@ -1,5 +1,17 @@
 package io.roach.volt.csv.listener;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
 import io.roach.volt.csv.event.CompletionEvent;
 import io.roach.volt.csv.event.ExitEvent;
 import io.roach.volt.csv.event.GenericEvent;
@@ -9,21 +21,10 @@ import io.roach.volt.csv.event.ProducerFinishedEvent;
 import io.roach.volt.csv.event.ProducerProgressEvent;
 import io.roach.volt.csv.event.ProducerStartedEvent;
 import io.roach.volt.csv.model.Table;
-import io.roach.volt.util.AsciiArt;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
-
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class LifeCycleListener extends AbstractEventPublisher {
-    private final AtomicInteger activeCount = new AtomicInteger();
+    private final List<Table> activeTables = Collections.synchronizedList(new ArrayList<>());
 
     private final AtomicBoolean quitOnCompletion = new AtomicBoolean();
 
@@ -36,7 +37,7 @@ public class LifeCycleListener extends AbstractEventPublisher {
 
     @EventListener
     public void onStartedEvent(GenericEvent<ProducerStartedEvent> event) {
-        activeCount.incrementAndGet();
+        activeTables.add(event.getTarget().getTable());
 
         if (event.getTarget().isBounded()) {
             console.blue("Started generating '%s' with %,d rows".formatted(
@@ -76,7 +77,7 @@ public class LifeCycleListener extends AbstractEventPublisher {
                                     event.getTarget().getRows(),
                                     event.getTarget().getDuration(),
                                     event.getTarget().calcRequestsPerSec(),
-                                    activeCount.get() + 1))
+                                    activeTables.size() + 1))
                     .nl();
         } else {
             console.blue("Finished generating '%s' with %,d rows in %s (%.0f/s avg) - %d file(s) in queue"
@@ -85,11 +86,13 @@ public class LifeCycleListener extends AbstractEventPublisher {
                                     event.getTarget().getRows(),
                                     event.getTarget().getDuration(),
                                     event.getTarget().calcRequestsPerSec(),
-                                    activeCount.get() + 1))
+                                    activeTables.size() + 1))
                     .nl();
         }
 
-        if (activeCount.decrementAndGet() <= 0) {
+        activeTables.remove(event.getTarget().getTable());
+
+        if (activeTables.size() <= 0) {
             if (!event.getTarget().isCancelled()) {
                 publishEvent(new CompletionEvent(paths));
             }
@@ -99,13 +102,16 @@ public class LifeCycleListener extends AbstractEventPublisher {
             if (quitOnCompletion.get()) {
                 publishEvent(new ExitEvent(0));
             }
+        } else {
+            console.yellow("Remaining: %s".formatted(activeTables
+                    .stream().map(Table::getName).collect(Collectors.toList()))).nl();
         }
     }
 
     @EventListener
     public void onFailedEvent(GenericEvent<ProducerFailedEvent> event) {
         console.blue("Failed generating '%s': %s"
-                .formatted(event.getTarget().getTable(), event.getTarget().getCause()))
+                        .formatted(event.getTarget().getTable(), event.getTarget().getCause()))
                 .nl();
     }
 }

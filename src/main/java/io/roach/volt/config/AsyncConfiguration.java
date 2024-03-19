@@ -1,7 +1,11 @@
 package io.roach.volt.config;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.aop.interceptor.SimpleAsyncUncaughtExceptionHandler;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,8 +17,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.context.request.async.CallableProcessingInterceptor;
 import org.springframework.web.context.request.async.TimeoutCallableProcessingInterceptor;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import io.roach.volt.csv.model.ApplicationModel;
 
 @Configuration
 @EnableAspectJAutoProxy
@@ -23,17 +26,19 @@ public class AsyncConfiguration implements AsyncConfigurer {
     @Value("${application.maximum-threads}")
     private int threadPoolSize;
 
+    @Autowired
+    private ApplicationModel applicationModel;
+
     /**
      * Executor used exclusively for @Async methods.
      */
     @Override
     public AsyncTaskExecutor getAsyncExecutor() {
-        return asyncTaskExecutor();
-    }
-
-    @Bean(name = "asyncTaskExecutor", destroyMethod = "shutdown")
-    public ThreadPoolTaskExecutor asyncTaskExecutor() {
         int poolSize = threadPoolSize > 0 ? threadPoolSize : Runtime.getRuntime().availableProcessors();
+
+        // Adjust to at least as many threads as potentially concurrent producers (# of tables)
+        poolSize = Math.max(applicationModel.getTables().size(), poolSize);
+
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(poolSize);
         executor.setMaxPoolSize(poolSize * 2);
@@ -58,9 +63,6 @@ public class AsyncConfiguration implements AsyncConfigurer {
 
         executor.setThreadNamePrefix("pool-");
         executor.setAwaitTerminationSeconds(5);
-        executor.setStrictEarlyShutdown(true);
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAcceptTasksAfterContextClose(false);
         executor.initialize();
 
         return executor;

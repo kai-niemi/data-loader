@@ -1,13 +1,5 @@
 package io.roach.volt.shell;
 
-import io.roach.volt.shell.support.AnsiConsole;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.shell.standard.ShellCommandGroup;
-import org.springframework.shell.standard.ShellComponent;
-import org.springframework.shell.standard.ShellMethod;
-
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
@@ -16,16 +8,21 @@ import java.lang.management.ThreadMXBean;
 import java.util.Arrays;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.shell.standard.ShellCommandGroup;
+import org.springframework.shell.standard.ShellComponent;
+import org.springframework.shell.standard.ShellMethod;
+
+import io.roach.volt.shell.support.AnsiConsole;
+
 @ShellComponent
 @ShellCommandGroup(CommandGroups.ADMIN)
 public class SystemInfo {
     @Autowired
     @Qualifier("threadPoolTaskExecutor")
     private ThreadPoolTaskExecutor threadPoolExecutor;
-
-    @Autowired
-    @Qualifier("asyncTaskExecutor")
-    private ThreadPoolTaskExecutor asyncThreadPoolExecutor;
 
     @Autowired
     private AnsiConsole ansiConsole;
@@ -68,7 +65,6 @@ public class SystemInfo {
     @ShellMethod(value = "Print thread pool metrics", key = {"pool-stats", "ps"})
     public void poolStats() {
         print("Task Executor Pool", threadPoolExecutor.getThreadPoolExecutor());
-        print("Async Executor Pool", asyncThreadPoolExecutor.getThreadPoolExecutor());
     }
 
     private void print(String pool, ThreadPoolExecutor tpe) {

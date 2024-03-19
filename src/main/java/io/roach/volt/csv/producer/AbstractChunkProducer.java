@@ -1,16 +1,16 @@
 package io.roach.volt.csv.producer;
 
-import io.roach.volt.csv.generator.ColumnGenerator;
-import io.roach.volt.csv.model.Column;
-import io.roach.volt.csv.model.Table;
-import io.roach.volt.util.concurrent.BlockingHashMap;
-import io.roach.volt.util.concurrent.CircularFifoQueue;
-import io.roach.volt.util.concurrent.FifoQueue;
-import io.roach.volt.util.pubsub.Publisher;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
+import io.roach.volt.csv.generator.ColumnGenerator;
+import io.roach.volt.csv.model.Column;
+import io.roach.volt.csv.model.Table;
+import io.roach.volt.util.concurrent.CircularFifoQueue;
+import io.roach.volt.util.concurrent.FifoQueue;
+import io.roach.volt.util.pubsub.Publisher;
 
 public abstract class AbstractChunkProducer<K, V> implements ChunkProducer<K, V> {
     private final Logger logger = LoggerFactory.getLogger(getClass());

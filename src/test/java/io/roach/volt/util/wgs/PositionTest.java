@@ -47,12 +47,12 @@ public class PositionTest {
         Position p1 = Position.of(Latitude.fromDecimal(59), Longitude.fromDecimal(18));
         Position p2 = Position.of(Latitude.fromDecimal(49), Longitude.fromDecimal(0));
 
+        double d = Position.haversineDistance(p1, p2);
+        double b = Position.bearing(p1, p2);
+
         System.out.println(p1.toDMS());
         System.out.println(p2.toDMS());
-        double d = Position.haversineDistance(p1, p2);
         System.out.println(d);
-
-        double b = Position.bearing(p1, p2);
         System.out.println(b);
     }
 }

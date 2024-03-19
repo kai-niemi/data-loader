@@ -1,16 +1,5 @@
 package io.roach.volt.csv.producer;
 
-import io.roach.volt.csv.generator.ColumnGenerator;
-import io.roach.volt.csv.model.Column;
-import io.roach.volt.csv.model.Each;
-import io.roach.volt.csv.model.Ref;
-import io.roach.volt.csv.model.Table;
-import io.roach.volt.util.Cartesian;
-import io.roach.volt.util.concurrent.BlockingHashMap;
-import io.roach.volt.util.pubsub.Publisher;
-import io.roach.volt.util.pubsub.Topic;
-import org.springframework.util.Assert;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +12,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+
+import org.springframework.util.Assert;
+
+import io.roach.volt.csv.generator.ColumnGenerator;
+import io.roach.volt.csv.model.Column;
+import io.roach.volt.csv.model.Each;
+import io.roach.volt.csv.model.Ref;
+import io.roach.volt.csv.model.Table;
+import io.roach.volt.util.Cartesian;
+import io.roach.volt.util.pubsub.Publisher;
+import io.roach.volt.util.pubsub.Topic;
 
 public class CrossProductChunkProducer extends AbstractChunkProducer<String, Object> {
     private static final int WARN_THRESHOLD = 10_000_000;
