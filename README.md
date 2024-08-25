@@ -1,4 +1,4 @@
-[![Java CI with Maven](https://github.com/kai-niemi/volt/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/kai-niemi/volt/actions/workflows/maven.yml)
+[![Java CI with Maven](https://github.com/cloudneutral/volt/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/cloudneutral/volt/actions/workflows/maven.yml)
        
 <!-- TOC -->
 * [Getting Started](#getting-started-)
@@ -86,7 +86,7 @@ MacOS (using sdkman):
 
 Clone the project:
 
-    git clone git@github.com:kai-niemi/volt.git volt
+    git clone git@github.com:cloudneutral/volt.git volt
     cd volt
 
 Build a single, executable JAR:
