@@ -1,13 +1,13 @@
 spring:
   datasource:
-    url: jdbc:postgresql://192.168.1.99:26257/test?sslmode=disable
+    url: jdbc:postgresql://localhost:26257/defaultdb?sslmode=disable
     username: root
     password:
 model:
   outputPath: ".output"
   tables:
     - name: "accounts"
-      count: "500m"
+      count: "50m"
       files: 100
       columns:
         - name: "acc_no"
@@ -111,5 +111,5 @@ model:
       delimiter: ","
       skip: "1"
       allow_quoted_null: "null"
-    file: "import.sql"
+    file: "import-accounts.sql"
     prefix: "http://${local-ip}:8090/"

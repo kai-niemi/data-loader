@@ -47,9 +47,8 @@ public class CrossProductChunkProducer extends AbstractChunkProducer<String, Obj
                             .formatted(getTable().getName(), each.getName()));
 
                     publisher.<Map<String, Object>>getTopic(each.getName())
-                            .addMessageListener(message -> {
-                                getFifoQueue().put(message.getTopic(), message.getPayload());
-                            });
+                            .addMessageListener(message ->
+                                    getFifoQueue().put(message.getTopic(), message.getPayload()));
                 });
 
         getTable().filterColumns(Table.WITH_REF)
@@ -63,9 +62,8 @@ public class CrossProductChunkProducer extends AbstractChunkProducer<String, Obj
                                 .formatted(getTable().getName(), ref.getName()));
 
                         publisher.<Map<String, Object>>getTopic(ref.getName())
-                                .addMessageListener(message -> {
-                                    getFifoQueue().offer(message.getTopic(), message.getPayload());
-                                });
+                                .addMessageListener(message ->
+                                        getFifoQueue().offer(message.getTopic(), message.getPayload()));
                     }
                 });
     }

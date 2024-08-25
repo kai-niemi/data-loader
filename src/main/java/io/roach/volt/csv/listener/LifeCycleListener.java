@@ -21,6 +21,7 @@ import io.roach.volt.csv.event.ProducerFinishedEvent;
 import io.roach.volt.csv.event.ProducerProgressEvent;
 import io.roach.volt.csv.event.ProducerStartedEvent;
 import io.roach.volt.csv.model.Table;
+import io.roach.volt.util.ByteUtils;
 
 @Component
 public class LifeCycleListener extends AbstractEventPublisher {
@@ -80,9 +81,11 @@ public class LifeCycleListener extends AbstractEventPublisher {
                                     activeTables.size() + 1))
                     .nl();
         } else {
-            console.blue("Finished generating '%s' with %,d rows in %s (%.0f/s avg) - %d file(s) in queue"
+            console.blue("Finished generating '%s' with size %s and %,d rows in %s (%.0f/s avg) - %d file(s) in queue"
                             .formatted(
                                     event.getTarget().getPath().getFileName(),
+                                    ByteUtils.byteCountToDisplaySize(
+                                            event.getTarget().getPath().toFile().length()),
                                     event.getTarget().getRows(),
                                     event.getTarget().getDuration(),
                                     event.getTarget().calcRequestsPerSec(),
@@ -92,7 +95,7 @@ public class LifeCycleListener extends AbstractEventPublisher {
 
         activeTables.remove(event.getTarget().getTable());
 
-        if (activeTables.size() <= 0) {
+        if (activeTables.isEmpty()) {
             if (!event.getTarget().isCancelled()) {
                 publishEvent(new CompletionEvent(paths));
             }
@@ -102,9 +105,6 @@ public class LifeCycleListener extends AbstractEventPublisher {
             if (quitOnCompletion.get()) {
                 publishEvent(new ExitEvent(0));
             }
-        } else {
-            console.yellow("Remaining: %s".formatted(activeTables
-                    .stream().map(Table::getName).collect(Collectors.toList()))).nl();
         }
     }
 

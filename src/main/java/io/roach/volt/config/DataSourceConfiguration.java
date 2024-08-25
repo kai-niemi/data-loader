@@ -1,7 +1,10 @@
 package io.roach.volt.config;
 
 import com.zaxxer.hikari.HikariDataSource;
+
+import net.ttddyy.dsproxy.listener.logging.DefaultQueryLogEntryCreator;
 import net.ttddyy.dsproxy.listener.logging.SLF4JLogLevel;
+import net.ttddyy.dsproxy.listener.logging.SLF4JQueryLoggingListener;
 import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -37,12 +40,19 @@ public class DataSourceConfiguration {
     }
 
     private DataSource loggingProxy(DataSource dataSource) {
+        DefaultQueryLogEntryCreator creator = new DefaultQueryLogEntryCreator();
+        creator.setMultiline(false);
+
+        SLF4JQueryLoggingListener listener = new SLF4JQueryLoggingListener();
+        listener.setLogger(SQL_TRACE_LOGGER);
+        listener.setLogLevel(SLF4JLogLevel.TRACE);
+        listener.setQueryLogEntryCreator(creator);
+
         return ProxyDataSourceBuilder
                 .create(dataSource)
                 .name("SQL-Trace")
                 .asJson()
-                .countQuery()
-                .logQueryBySlf4j(SLF4JLogLevel.TRACE, SQL_TRACE_LOGGER)
+                .listener(listener)
                 .multiline()
                 .build();
     }
@@ -54,7 +64,6 @@ public class DataSourceConfiguration {
                 .initializeDataSourceBuilder()
                 .type(HikariDataSource.class)
                 .build();
-//        ds.setReadOnly(true);
         ds.setAutoCommit(true);
         ds.addDataSourceProperty("application_name", "volt");
         return ds;

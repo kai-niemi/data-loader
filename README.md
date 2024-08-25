@@ -166,7 +166,7 @@ Example:
           ...
 
 This sample configuration will create three separate CSV files with 100 customers, 100 orders and 100 order items. 
-It will also create an `.output/import.sql` file with `IMPORT INTO` SQL statements in toplogical order 
+It will also create an `.output/import-accounts.sql` file with `IMPORT INTO` SQL statements in toplogical order 
 inferred from the foreign key relationships.
 
 Example:
@@ -197,12 +197,12 @@ The `.output` directory will now have:
     customer.csv
     purchase_order.csv
     purchase_order_item.csv
-    import.sql
+    import-accounts.sql
     application-default.yml
                                                                      
 Lastly, we can run in http proxy mode and let CockroachDB run the actual import:
 
-    echo "db-exec --sql .output/import.sql" > cmd.txt
+    echo "db-exec --sql .output/import-accounts.sql" > cmd.txt
     echo "quit" >> cmd.txt
     java -jar target/volt.jar --proxy @cmd.txt
                                                                
@@ -500,7 +500,7 @@ Defines the CSV delimiter, enclosing character and also instructions for the gen
           delimiter: ","
           skip: "1"
           allow_quoted_null: "null"
-        file: "import.sql"
+        file: "import-accounts.sql"
         prefix: "http://${local-ip}:8090/"
 
 | Field Name | Optional | Default | Description                                                                                                                                        |

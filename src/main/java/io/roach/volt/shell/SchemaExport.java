@@ -58,7 +58,7 @@ public class SchemaExport {
             String tableName,
             @ShellOption(help = "output path relative to base dir (created on demand)", defaultValue = ".output")
             String outputPath,
-            @ShellOption(help = "output file name", defaultValue = "application-default.yml")
+            @ShellOption(help = "target application YAML file name (like application-default.yml)")
             String outputFile
 
     ) throws IOException {

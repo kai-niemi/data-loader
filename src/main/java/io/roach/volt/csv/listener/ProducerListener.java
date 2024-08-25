@@ -135,7 +135,7 @@ public class ProducerListener extends AbstractEventPublisher {
                             .setPosition(currentRow.get())
                             .setTotal(rowEstimate)
                             .setStartTime(startTime)
-                            .setLabel("Writing %s".formatted(path.toString()))
+                            .setLabel(path.toString())
                     );
                     lastTick.set(Instant.now());
                 }

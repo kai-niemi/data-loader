@@ -60,8 +60,17 @@ public class IndexController {
 
         index.add(linkTo(methodOn(getClass())
                 .importFiles())
-                .withRel(LinkRelations.FILES_REL)
+                .withRel(LinkRelations.IMPORT_FILES_REL)
                 .withTitle("Import file index"));
+
+        index.add(Link.of(ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .pathSegment(applicationModel.getImport().getFile())
+                        .buildAndExpand()
+                        .toUriString())
+                .withRel(LinkRelations.IMPORT_SQL_REL)
+                .withTitle("Import SQL file")
+                .withType(MediaType.TEXT_PLAIN_VALUE)
+        );
 
         index.add(Link.of(ServletUriComponentsBuilder.fromCurrentContextPath()
                         .pathSegment("actuator")

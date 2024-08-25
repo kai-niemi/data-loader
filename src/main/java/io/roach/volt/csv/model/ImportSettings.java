@@ -9,7 +9,7 @@ import java.util.Map;
 public class ImportSettings {
     public static ImportSettings createDefault() {
         ImportSettings importSettings = new ImportSettings();
-        importSettings.setFile("import.sql");
+        importSettings.setFile("import-accounts.sql");
         importSettings.setPrefix("http://${local-ip}:8090/");
 
         importSettings.options.put(ImportOption.delimiter, ",");

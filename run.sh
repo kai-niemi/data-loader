@@ -45,7 +45,7 @@ fi
 PS3='Please select application model: '
 options=( "samples"/*.yml )
 
-select option in "${options[@]}" "<Quit>";  do
+select option in "<Quit>" "${options[@]}" ;  do
   case $option in
     *.yml)
       profiles=$(echo $option | sed -e 's#^samples/application-##' -e "s/\.[^.]*$//")
@@ -62,7 +62,7 @@ done
 fn_print_cyan "Selected profiles: $profiles"
 
 PS3='Please select additional profiles: '
-options=( "proxy" "dev" "<Start>" "<Quit>" )
+options=( "<Quit>" "<Start>" "proxy")
 
 select option in "${options[@]}"; do
   case $option in
