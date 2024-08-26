@@ -108,5 +108,5 @@ model:
       delimiter: ","
       skip: "1"
       allow_quoted_null: "null"
-    file: "import-default.sql"
+    file: "import.sql"
     prefix: "http://${local-ip}:8090/"

@@ -24,23 +24,23 @@
 
 # Volt 
 
-<img align="left" src="logo.png" width="128" /> Volt is a simple CSV file generator targeting 
-CockroachDB imports for load testing. It can generate very large CSV files based on YAML 
-configurations, which in turn can be generated using database schema introspection. 
+<img align="left" src="logo.png" width="128" /> Volt is a flexible CSV file generator targeting 
+CockroachDB imports. It can generate large CSV files based on a 
+YAML configuration, which in turn can be generated using database schema introspection. 
 
-The memory footprint is very low since it doesn't build state during CSV creation, but 
-instead uses pub/sub and bounded ring buffers for related tables (CSVs referring anothers by id). 
-The only exception being [cartesian / cross product](https://en.wikipedia.org/wiki/Join_(SQL)#Cross_join) table relations where the aggregation 
-needs to be done in-memory (see [Each](#each)).
+The memory footprint is low since it doesn't build much state during CSV creation.
+It uses pub/sub and bounded ring buffers for table relations, like 
+in one-to-many relations. The main exception being [cartesian / cross product](https://en.wikipedia.org/wiki/Join_(SQL)#Cross_join) 
+table relations, where aggregation needs to be done in-memory (see [Each](#each)).
 
 The tool comes with a command-line interface, an interactive shell and can also operate in 
 HTTP proxy mode to support CockroachDB `IMPORT INTO` commands consuming the generated files.
 
 Main use cases:
 
-- Generate CSV files for functional testing and load testing
+- Generate CSV files for the purpose of functional / load testing
 - Support `IMPORT INTO` command via HTTP endpoint
-- Merge-sort very large CSV files
+- Merge-sort large CSV files
 
 # Getting Started 
 
@@ -106,7 +106,7 @@ database schema.
 
 ## Generate Configuration
 
-To create a configuration YAML file, you can either copy and modify a [template](template/) file or generate
+To create a configuration YAML file, you can either copy and modify a [template](template/) file, or generate
 one from an existing database schema. The generated files can be further fine-tuned to use proper randomization
 functions and more.
 
@@ -166,7 +166,7 @@ Example:
           ...
 
 This sample configuration will create three separate CSV files with 100 customers, 100 orders and 100 order items. 
-It will also create an `.output/import-accounts.sql` file with `IMPORT INTO` SQL statements in toplogical order 
+It will also create an `.output/import.sql` file with `IMPORT INTO` SQL statements in topological order 
 inferred from the foreign key relationships.
 
 Example:
@@ -186,6 +186,10 @@ Example:
      'http://192.168.1.113:8090/purchase_order_item.csv'
     ) WITH delimiter = ',', skip = '1', nullif = '', allow_quoted_null;
 
+> Hint: If your import jobs get stuck you can cancel them with:
+
+    CANCEL JOBS (WITH x AS (SHOW JOBS) SELECT job_id FROM x WHERE job_type='IMPORT' and status != 'failed');
+
 Next, let's generate all these files using `csv-generate`:
 
     echo "csv-generate" > cmd.txt
@@ -197,12 +201,12 @@ The `.output` directory will now have:
     customer.csv
     purchase_order.csv
     purchase_order_item.csv
-    import-accounts.sql
+    import.sql
     application-default.yml
                                                                      
 Lastly, we can run in http proxy mode and let CockroachDB run the actual import:
 
-    echo "db-exec --sql .output/import-accounts.sql" > cmd.txt
+    echo "db-exec --sql .output/import-account.sql" > cmd.txt
     echo "quit" >> cmd.txt
     java -jar target/volt.jar --proxy @cmd.txt
                                                                
@@ -406,8 +410,8 @@ like five orders for each customer or ten order items for each order.
 **Remarks:**
 
 A table that contains at least one `each` column must not have a [row count](#tables). This is 
-because the number of rows in the descentant table depends on the number of rows created 
-by the referenced anscestor table.
+because the number of rows in the descendant table depends on the number of rows created 
+by the referenced ancestor table.
 
 A table with more than one `each` column creates a cartesian (cross) product. Be aware of the size
 and memory implications of cartesian products. All permutations of just a 3-table `100x100x100` 
@@ -500,7 +504,7 @@ Defines the CSV delimiter, enclosing character and also instructions for the gen
           delimiter: ","
           skip: "1"
           allow_quoted_null: "null"
-        file: "import-accounts.sql"
+        file: "import.sql"
         prefix: "http://${local-ip}:8090/"
 
 | Field Name | Optional | Default | Description                                                                                                                                        |

@@ -27,6 +27,8 @@ import io.roach.volt.util.ByteUtils;
 public class LifeCycleListener extends AbstractEventPublisher {
     private final List<Table> activeTables = Collections.synchronizedList(new ArrayList<>());
 
+    private final AtomicBoolean completed = new AtomicBoolean();
+
     private final AtomicBoolean quitOnCompletion = new AtomicBoolean();
 
     private final Map<Table, List<Path>> paths = new LinkedHashMap<>();
@@ -34,6 +36,7 @@ public class LifeCycleListener extends AbstractEventPublisher {
     @EventListener
     public void onStartEvent(GenericEvent<ProduceStartEvent> event) {
         quitOnCompletion.set(event.getTarget().isQuitOnCompletion());
+        completed.set(false);
     }
 
     @EventListener
@@ -41,12 +44,12 @@ public class LifeCycleListener extends AbstractEventPublisher {
         activeTables.add(event.getTarget().getTable());
 
         if (event.getTarget().isBounded()) {
-            console.blue("Started generating '%s' with %,d rows".formatted(
+            console.blue("Started generating '%s' with %,d n:of rows".formatted(
                             event.getTarget().getPath().getFileName(),
                             event.getTarget().getTable().getFinalCount()))
                     .nl();
         } else {
-            console.blue("Started generating '%s' with unknown rows".formatted(
+            console.blue("Started generating '%s' with inferred n:of rows".formatted(
                             event.getTarget().getPath().getFileName()))
                     .nl();
         }
@@ -71,6 +74,8 @@ public class LifeCycleListener extends AbstractEventPublisher {
         paths.computeIfAbsent(event.getTarget().getTable(), s -> new ArrayList<>())
                 .add(event.getTarget().getPath());
 
+        activeTables.remove(event.getTarget().getTable());
+
         if (event.getTarget().isCancelled()) {
             console.blue("Cancelled generating '%s' with %,d rows in %s (%.0f/s avg) - %d file(s) in queue"
                             .formatted(
@@ -78,7 +83,7 @@ public class LifeCycleListener extends AbstractEventPublisher {
                                     event.getTarget().getRows(),
                                     event.getTarget().getDuration(),
                                     event.getTarget().calcRequestsPerSec(),
-                                    activeTables.size() + 1))
+                                    activeTables.size()))
                     .nl();
         } else {
             console.blue("Finished generating '%s' with size %s and %,d rows in %s (%.0f/s avg) - %d file(s) in queue"
@@ -89,13 +94,13 @@ public class LifeCycleListener extends AbstractEventPublisher {
                                     event.getTarget().getRows(),
                                     event.getTarget().getDuration(),
                                     event.getTarget().calcRequestsPerSec(),
-                                    activeTables.size() + 1))
+                                    activeTables.size()))
                     .nl();
         }
 
-        activeTables.remove(event.getTarget().getTable());
+        if (activeTables.isEmpty() && !completed.get()) {
+            completed.set(true);
 
-        if (activeTables.isEmpty()) {
             if (!event.getTarget().isCancelled()) {
                 publishEvent(new CompletionEvent(paths));
             }
@@ -107,6 +112,8 @@ public class LifeCycleListener extends AbstractEventPublisher {
             }
         }
     }
+
+
 
     @EventListener
     public void onFailedEvent(GenericEvent<ProducerFailedEvent> event) {

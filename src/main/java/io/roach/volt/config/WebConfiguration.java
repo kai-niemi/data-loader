@@ -38,8 +38,7 @@ public class WebConfiguration {
 
             @Override
             public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
-                configurer.setDefaultTimeout(2 * 60 * 60 * 1_000)
-                        .setTaskExecutor(taskExecutor);
+                configurer.setDefaultTimeout(2 * 60 * 60 * 1_000).setTaskExecutor(taskExecutor);
                 configurer.registerCallableInterceptors(callableProcessingInterceptor);
                 WebMvcConfigurer.super.configureAsyncSupport(configurer);
             }

@@ -14,6 +14,7 @@ import io.roach.volt.csv.model.Root;
 import io.roach.volt.csv.model.Table;
 import io.roach.volt.csv.producer.ChunkProducers;
 import io.roach.volt.shell.support.AnsiConsole;
+import io.roach.volt.util.AsciiArt;
 import io.roach.volt.util.Multiplier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -84,16 +85,16 @@ public class CSV extends AbstractEventPublisher {
         publishEvent(new CancellationEvent());
     }
 
-    @ShellMethod(value = "Show application model YAML", key = {"csv-show", "cs"})
+    @ShellMethod(value = "Show application model YAML", key = {"csv-show", "s"})
     public void show() throws IOException {
         console.blue(yamlObjectMapper.writerFor(Root.class)
                 .writeValueAsString(new Root(applicationModel))).nl();
     }
 
-    @ShellMethod(value = "Validate application model YAML", key = {"csv-validate", "cv"})
+    @ShellMethod(value = "Validate application model YAML", key = {"csv-validate", "v"})
     public void validate() {
         validateModel();
-        console.blue("All good").nl();
+        console.blue("All good %s".formatted(AsciiArt.happy())).nl();
     }
 
     private void validateModel() {
@@ -135,11 +136,14 @@ public class CSV extends AbstractEventPublisher {
         }
 
         if (applicationModel.getTables().isEmpty()) {
-            logger.warn("No tables found in current model. Use the schema export command 'db-export' or edit the application model YAML file directly.");
+            console.red("No tables found in current model. "
+                    + "Use the schema export command 'db-export' or edit the application model YAML file directly. %s"
+                    .formatted(AsciiArt.shrug())).nl();
         }
 
         if (total > 0 && total != 100.0) {
-            logger.warn("Table row distribution does not add up to 100% but " + total);
+            console.red("Table row distribution does not add up to 100%% but %1f - %s"
+                    .formatted(total, AsciiArt.shrug())).nl();
         }
     }
 

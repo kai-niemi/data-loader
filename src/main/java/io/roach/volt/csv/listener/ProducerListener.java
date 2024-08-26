@@ -179,8 +179,10 @@ public class ProducerListener extends AbstractEventPublisher {
     }
 
     private ChunkWriter<Map<String, Object>> createWriter(Path path) {
-        String delimiter = applicationModel.getImport().getOptions().getOrDefault(ImportOption.delimiter, ",");
-        String quoteChar = applicationModel.getImport().getOptions().getOrDefault(ImportOption.fields_enclosed_by, "");
+        String delimiter = applicationModel.getImport()
+                .getOptions().getOrDefault(ImportOption.delimiter, ",");
+        String quoteChar = applicationModel.getImport()
+                .getOptions().getOrDefault(ImportOption.fields_enclosed_by, "");
         boolean append = applicationModel.isAppend() != null ? applicationModel.isAppend() : false;
         return new ChunkFileWriter<>(
                 delimiter,

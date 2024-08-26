@@ -34,9 +34,14 @@ fn_print_blue(){
 	echo -en "\n"
 }
 
+fn_run(){
+  fn_print_blue java -jar ${jarfile} --profiles ${profiles} $*
+  java -jar ${jarfile} --profiles ${profiles} $*
+}
+
 basedir=.
 jarfile=${basedir}/target/volt.jar
-profiles=
+profiles="default"
 
 if [ ! -f "$jarfile" ]; then
     ./mvnw clean install
@@ -45,11 +50,15 @@ fi
 PS3='Please select application model: '
 options=( "samples"/*.yml )
 
-select option in "<Quit>" "${options[@]}" ;  do
+select option in "<Start>" "<Quit>" "${options[@]}" ;  do
   case $option in
     *.yml)
       profiles=$(echo $option | sed -e 's#^samples/application-##' -e "s/\.[^.]*$//")
       break
+      ;;
+    "<Start>")
+      fn_run
+      exit 0
       ;;
     "<Quit>")
       exit 0
@@ -59,10 +68,8 @@ select option in "<Quit>" "${options[@]}" ;  do
   esac
 done
 
-fn_print_cyan "Selected profiles: $profiles"
-
 PS3='Please select additional profiles: '
-options=( "<Quit>" "<Start>" "proxy")
+options=( "<Start>" "<Quit>"  "proxy")
 
 select option in "${options[@]}"; do
   case $option in
@@ -79,6 +86,4 @@ select option in "${options[@]}"; do
   esac
 done
 
-fn_print_blue java -jar ${jarfile} --profiles ${profiles} $*
-
-java -jar ${jarfile} --profiles ${profiles} $*
+fn_run

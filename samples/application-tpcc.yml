@@ -277,5 +277,5 @@ model:
       delimiter: ","
       skip: "1"
       allow_quoted_null: "null"
-    file: "import-tpcc.sql"
+    file: "import.sql"
     prefix: "http://${local-ip}:8090/"

@@ -1,6 +1,29 @@
 package io.roach.volt.shell;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.JDBCType;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.shell.standard.ShellCommandGroup;
+import org.springframework.shell.standard.ShellComponent;
+import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.ShellOption;
+import org.springframework.util.StringUtils;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.roach.volt.csv.model.ApplicationModel;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.Each;
@@ -15,25 +38,6 @@ import io.roach.volt.shell.metadata.PrimaryKeyModel;
 import io.roach.volt.shell.support.AnsiConsole;
 import io.roach.volt.shell.support.TableNameProvider;
 import io.roach.volt.util.graph.DirectedAcyclicGraph;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.shell.standard.ShellCommandGroup;
-import org.springframework.shell.standard.ShellComponent;
-import org.springframework.shell.standard.ShellMethod;
-import org.springframework.shell.standard.ShellOption;
-import org.springframework.util.StringUtils;
-
-import javax.sql.DataSource;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.JDBCType;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static io.roach.volt.csv.model.IdentityType.sequence;
 import static io.roach.volt.csv.model.IdentityType.unordered;
@@ -58,8 +62,8 @@ public class SchemaExport {
             String tableName,
             @ShellOption(help = "output path relative to base dir (created on demand)", defaultValue = ".output")
             String outputPath,
-            @ShellOption(help = "target application YAML file name (like application-default.yml)")
-            String outputFile
+            @ShellOption(help = "target application YAML file name",
+                    defaultValue = "application-default.yml") String outputFile
 
     ) throws IOException {
         final Map<String, Table> tables = new HashMap<>();
@@ -234,31 +238,31 @@ public class SchemaExport {
         model.setOutputPath(outputDir);
         model.setTables(tables);
 
-        Path outputPath = Paths.get(outputDir);
-        if (!Files.isDirectory(outputPath)) {
-            console.yellow("Creating directory: " + outputPath).nl();
-            Files.createDirectories(outputPath);
-        }
-
-        final Path modelFile = outputPath.resolve(outputFile);
-
         console.yellow("Topological order (inverse): ");
         tables.forEach(table -> console.green(table.getName()).green(", "));
         console.nl();
 
-        if (Files.isRegularFile(modelFile)) {
-            console.red("Overwriting model file: ").green("%s", modelFile).nl();
-        } else {
-            console.yellow("Writing model file: ").green("%s", modelFile).nl();
+        StringWriter sw = new StringWriter();
+        yamlObjectMapper.writerFor(Root.class).writeValue(sw, new Root(model));
+        console.blue(sw.toString());
+
+        if (!"".equalsIgnoreCase(outputFile)) {
+            Path outputPath = Paths.get(outputDir);
+            if (!Files.isDirectory(outputPath)) {
+                console.yellow("Creating directory: " + outputPath).nl();
+                Files.createDirectories(outputPath);
+            }
+
+            final Path modelFile = outputPath.resolve(outputFile);
+            if (Files.isRegularFile(modelFile)) {
+                console.red("Overwriting model file: ").green("%s", modelFile).nl();
+            } else {
+                console.yellow("Writing model file: ").green("%s", modelFile).nl();
+            }
+            yamlObjectMapper.writerFor(Root.class)
+                    .writeValue(modelFile.toFile(), new Root(model));
+            console.magenta("NOTE: Restart to apply exported model").nl();
         }
-
-        yamlObjectMapper.writerFor(Root.class)
-                .writeValue(modelFile.toFile(), new Root(model));
-
-        console.blue(yamlObjectMapper.writerFor(Root.class)
-                .writeValueAsString(new Root(model))).nl();
-
-        console.magenta("NOTE: Restart to apply exported model").nl();
     }
 
     public static String getTypeSpecificExpression(DataSource dataSource, ColumnModel model) {

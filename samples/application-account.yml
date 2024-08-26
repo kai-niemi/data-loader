@@ -1,0 +1,28 @@
+model:
+  outputPath: ".output"
+  tables:
+    - name: "account"
+      count: "100"
+      files: 1
+      columns:
+        - name: "id"
+          gen:
+            type: "unordered"
+            batchSize: 512
+        - name: "type"
+          expression: "randomString(32)"
+        - name: "version"
+          expression: "randomLong()"
+        - name: "balance"
+          expression: "randomBigDecimal(0,100000000000000000,2)"
+        - name: "name"
+          expression: "randomFullName()"
+        - name: "allow_negative"
+          expression: "randomLong()"
+  import:
+    options:
+      delimiter: ","
+      skip: "1"
+      allow_quoted_null: "null"
+    file: "import.sql"
+    prefix: "http://${local-ip}:8090/"

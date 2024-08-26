@@ -1,21 +1,22 @@
 package io.roach.volt.csv.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ImportSettings {
     public static ImportSettings createDefault() {
         ImportSettings importSettings = new ImportSettings();
-        importSettings.setFile("import-accounts.sql");
+        importSettings.setFile("import.sql");
         importSettings.setPrefix("http://${local-ip}:8090/");
 
         importSettings.options.put(ImportOption.delimiter, ",");
-        importSettings.options.put(ImportOption.fields_enclosed_by, "");
         importSettings.options.put(ImportOption.skip, "1");
-        importSettings.options.put(ImportOption.nullif, "");
         importSettings.options.put(ImportOption.allow_quoted_null, "null");
 
         return importSettings;
@@ -33,6 +34,11 @@ public class ImportSettings {
 
     public String getFile() {
         return file;
+    }
+
+    @JsonIgnore
+    public Path getPath() {
+        return Paths.get(file);
     }
 
     public void setFile(String file) {

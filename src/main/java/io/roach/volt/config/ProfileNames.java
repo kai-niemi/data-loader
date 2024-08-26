@@ -5,6 +5,4 @@ public abstract class ProfileNames {
     }
 
     public static final String PROXY = "proxy";
-
-    public static final String DEV = "dev";
 }

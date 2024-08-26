@@ -44,6 +44,7 @@ public class ImportFileListener extends AbstractEventPublisher {
     @EventListener
     public void onCompletionEvent(GenericEvent<CompletionEvent> event) throws IOException {
         ImportSettings importSettings = ImportSettings.createDefault();
+
         applicationModel.setImport(importSettings);
 
         Map<Table, List<Path>> paths = event.getTarget().getPaths();
@@ -100,7 +101,7 @@ public class ImportFileListener extends AbstractEventPublisher {
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
 
-        ansiConsole.yellow("Created import file '%s' in topological order [%s]"
+        ansiConsole.blue("Created import file '%s' in topological order [%s]"
                 .formatted(importFilePath,
                         StringUtils.collectionToCommaDelimitedString(
                                 paths.keySet().stream().map(Table::getName)

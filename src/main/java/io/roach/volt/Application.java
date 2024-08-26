@@ -52,7 +52,7 @@ public class Application implements PromptProvider, ApplicationRunner {
         LinkedList<String> passThroughArgs = new LinkedList<>();
 
         Set<String> profiles =
-                StringUtils.commaDelimitedListToSet(System.getProperty("spring.profiles.active", ""));
+                StringUtils.commaDelimitedListToSet(System.getProperty("spring.profiles.active", "default"));
 
         while (!argsList.isEmpty()) {
             String arg = argsList.pop();
@@ -60,9 +60,10 @@ public class Application implements PromptProvider, ApplicationRunner {
                 printHelpAndExit("");
             } else if (arg.equals("--proxy")) {
                 profiles.add(ProfileNames.PROXY);
-            } else if (arg.equals("--dev")) {
-                profiles.add(ProfileNames.DEV);
             } else if (arg.equals("--profiles")) {
+                if (argsList.isEmpty()) {
+                    printHelpAndExit("Expected list of profile names");
+                }
                 profiles.clear();
                 profiles.addAll(StringUtils.commaDelimitedListToSet(argsList.pop()));
             } else {

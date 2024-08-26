@@ -83,6 +83,8 @@ server:
     include-exception: true
   compression:
     enabled: true
+    min-response-size: 256
+    mime-types: application/octet-stream,application/prs.hal-forms+json,text/plain
 ##################################
 logging:
   pattern:

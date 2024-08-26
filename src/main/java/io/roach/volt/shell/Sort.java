@@ -1,22 +1,5 @@
 package io.roach.volt.shell;
 
-import io.roach.volt.csv.listener.AbstractEventPublisher;
-import io.roach.volt.shell.mergesort.ComparatorType;
-import io.roach.volt.shell.mergesort.ExternalMerge;
-import io.roach.volt.shell.mergesort.ExternalMergeSort;
-import io.roach.volt.shell.mergesort.ExternalSplit;
-import io.roach.volt.shell.support.AnotherFileValueProvider;
-import io.roach.volt.shell.support.AnsiConsole;
-import io.roach.volt.shell.support.DirectoryValueProvider;
-import io.roach.volt.util.AsciiArt;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.ansi.AnsiColor;
-import org.springframework.shell.standard.EnumValueProvider;
-import org.springframework.shell.standard.ShellCommandGroup;
-import org.springframework.shell.standard.ShellComponent;
-import org.springframework.shell.standard.ShellMethod;
-import org.springframework.shell.standard.ShellOption;
-
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -26,6 +9,22 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.shell.standard.EnumValueProvider;
+import org.springframework.shell.standard.ShellCommandGroup;
+import org.springframework.shell.standard.ShellComponent;
+import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.ShellOption;
+
+import io.roach.volt.csv.listener.AbstractEventPublisher;
+import io.roach.volt.shell.mergesort.ComparatorType;
+import io.roach.volt.shell.mergesort.ExternalMerge;
+import io.roach.volt.shell.mergesort.ExternalMergeSort;
+import io.roach.volt.shell.mergesort.ExternalSplit;
+import io.roach.volt.shell.support.AnotherFileValueProvider;
+import io.roach.volt.shell.support.AnsiConsole;
+import io.roach.volt.shell.support.DirectoryValueProvider;
+
 import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 
 @ShellComponent
@@ -34,7 +33,7 @@ public class Sort extends AbstractEventPublisher {
     @Autowired
     private AnsiConsole console;
 
-    @ShellMethod(value = "Sort a CSV file in lexicographical order", key = {"sort", "s"})
+    @ShellMethod(value = "Sort a CSV file in lexicographical order", key = {"sort"})
     public void sort(
             @ShellOption(help = "input file path",
                     defaultValue = ShellOption.NONE,
@@ -50,7 +49,7 @@ public class Sort extends AbstractEventPublisher {
             @ShellOption(help = "column delimiter", defaultValue = ",") String delimiter,
             @ShellOption(help = "number of chunks or files (-1 denotes number of host vCPU:s)", defaultValue = "-1")
             int chunks,
-            
+
             @ShellOption(help = "lines to skip from input file denoting header (included in sorted output)", defaultValue = "0")
             int linesToSkip,
             @ShellOption(help = "keep original input file after completion",
@@ -80,7 +79,7 @@ public class Sort extends AbstractEventPublisher {
         publishEvent(externalMergeSort);
     }
 
-    @ShellMethod(value = "Split a CSV file in even chunks without sorting", key = {"split", "t"})
+    @ShellMethod(value = "Split a CSV file in even chunks without sorting", key = {"split"})
     public void split(
             @ShellOption(help = "input file path",
                     defaultValue = ShellOption.NONE,
@@ -108,7 +107,7 @@ public class Sort extends AbstractEventPublisher {
         publishEvent(externalSplit);
     }
 
-    @ShellMethod(value = "Merge a list of CSV files into a single file", key = {"merge", "m"})
+    @ShellMethod(value = "Merge a list of CSV files into a single file", key = {"merge"})
     public void merge(
             @ShellOption(help = "input file base dir",
                     defaultValue = ShellOption.NULL,
