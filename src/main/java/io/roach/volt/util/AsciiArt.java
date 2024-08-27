@@ -8,6 +8,10 @@ public abstract class AsciiArt {
         return "(ʘ‿ʘ)";
     }
 
+    public static String bye() {
+        return "(ʘ‿ʘ)╯";
+    }
+
     public static String shrug() {
         return "¯\\_(ツ)_/¯";
     }

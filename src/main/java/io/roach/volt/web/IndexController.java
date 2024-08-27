@@ -18,7 +18,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
-@Profile(ProfileNames.PROXY)
+@Profile(ProfileNames.HTTP)
 public class IndexController {
     @Autowired
     private BuildProperties buildProperties;

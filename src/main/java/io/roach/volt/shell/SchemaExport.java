@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.sql.JDBCType;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,8 +15,11 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.shell.standard.ShellCommandGroup;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
@@ -30,12 +34,12 @@ import io.roach.volt.csv.model.Each;
 import io.roach.volt.csv.model.Gen;
 import io.roach.volt.csv.model.Ref;
 import io.roach.volt.csv.model.Root;
+import io.roach.volt.csv.model.SpringModel;
 import io.roach.volt.csv.model.Table;
 import io.roach.volt.shell.metadata.ColumnModel;
 import io.roach.volt.shell.metadata.ForeignKeyModel;
 import io.roach.volt.shell.metadata.MetaDataUtils;
 import io.roach.volt.shell.metadata.PrimaryKeyModel;
-import io.roach.volt.shell.support.AnsiConsole;
 import io.roach.volt.shell.support.TableNameProvider;
 import io.roach.volt.util.graph.DirectedAcyclicGraph;
 
@@ -46,11 +50,10 @@ import static io.roach.volt.csv.model.IdentityType.uuid;
 @ShellComponent
 @ShellCommandGroup(CommandGroups.SCHEMA)
 public class SchemaExport {
-    @Autowired
-    private DataSource dataSource;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private AnsiConsole console;
+    private DataSource dataSource;
 
     @Autowired
     @Qualifier("yamlObjectMapper")
@@ -93,7 +96,7 @@ public class SchemaExport {
 
             tables.put(name, table);
 
-            console.yellow("Found table ").green("'%s'", name).nl();
+            logger.info("Found table '%s'".formatted(name));
         });
 
         // Build DAG from fk relations
@@ -101,7 +104,7 @@ public class SchemaExport {
 
         // Second pass, resolve foreign key refs and halt if not a DAG
         tableNames.forEach(name -> MetaDataUtils.listForeignKeys(dataSource, name, rs -> {
-            console.yellow("Resolving foreign keys for ").green("'%s'", name).nl();
+            logger.info("Resolving foreign keys for '%s'".formatted(name));
 
             final Table from = tables.get(name);
             dag.addNode(from);
@@ -140,24 +143,24 @@ public class SchemaExport {
                     }
                 }
 
-                console.green("Foreign key found: %s", fk).nl();
+                logger.debug("Foreign key found: %s".formatted(fk));
 
                 dag.addEdge(from, to, fk);
             }
 
             if (keys == 0) {
-                console.red("No foreign keys found").nl();
+                logger.debug("No foreign keys found");
             }
         }));
 
         // Third pass, adjust primary key gens
         tableNames.forEach(name -> MetaDataUtils.listPrimaryKeys(dataSource, name, rs -> {
-            console.yellow("Resolving primary keys for ").green("'%s'", name).nl();
+            logger.debug("Resolving primary keys for '%s'".formatted(name));
 
             while (rs.next()) {
                 PrimaryKeyModel pk = new PrimaryKeyModel(rs);
 
-                console.green("Primary key: %s", pk).nl();
+                logger.debug("Primary key: %s".formatted(pk));
 
                 Table table = tables.get(pk.getTableName());
                 table.getColumns()
@@ -178,8 +181,6 @@ public class SchemaExport {
 
         tables.values().forEach(table -> {
             if ((long) table.filterColumns(Table.WITH_EACH).size() > 0) {
-                console.yellow("Clearing row count for ref/cross product table: ")
-                        .green(table.getName()).nl();
                 table.setCount(null);
                 table.setFinalCount(0);
             }
@@ -191,7 +192,7 @@ public class SchemaExport {
     private void configureRowId(Column column, ColumnModel model) {
         int dataType = model.getAttribute("DATA_TYPE", Integer.class);
 
-        console.yellow("Configure row id for: ").green(column.getName()).nl();
+        logger.debug("Configure row id for column '%s'".formatted(column.getName()));
 
         switch (JDBCType.valueOf(dataType)) {
             case TINYINT, SMALLINT, INTEGER, BIGINT -> {
@@ -233,35 +234,60 @@ public class SchemaExport {
         }
     }
 
+    @Value("${spring.datasource.url}")
+    private String url;
+
+    @Value("${spring.datasource.username}")
+    private String username;
+
+    @Value("${spring.datasource.password}")
+    private String password;
+
     private void exportModel(List<Table> tables, String outputDir, String outputFile) throws IOException {
         final ApplicationModel model = new ApplicationModel();
         model.setOutputPath(outputDir);
         model.setTables(tables);
 
-        console.yellow("Topological order (inverse): ");
-        tables.forEach(table -> console.green(table.getName()).green(", "));
-        console.nl();
-
-        StringWriter sw = new StringWriter();
-        yamlObjectMapper.writerFor(Root.class).writeValue(sw, new Root(model));
-        console.blue(sw.toString());
+        logger.info("Topological order (inverse): %s".formatted(
+                String.join(",", tables.stream().map(Table::getName).toList())));
 
         if (!"".equalsIgnoreCase(outputFile)) {
             Path outputPath = Paths.get(outputDir);
             if (!Files.isDirectory(outputPath)) {
-                console.yellow("Creating directory: " + outputPath).nl();
+                logger.debug("Creating directory: %s".formatted(outputPath));
                 Files.createDirectories(outputPath);
             }
 
             final Path modelFile = outputPath.resolve(outputFile);
             if (Files.isRegularFile(modelFile)) {
-                console.red("Overwriting model file: ").green("%s", modelFile).nl();
-            } else {
-                console.yellow("Writing model file: ").green("%s", modelFile).nl();
+                Path backup = outputPath.resolve(outputFile + ".backup");
+                if (!Files.isRegularFile(backup)) {
+                    Files.move(modelFile, backup);
+                    logger.info("Created backup file '%s'".formatted(backup));
+                } else {
+                    logger.warn("Backup file already exist: '%s'".formatted(backup));
+                }
             }
-            yamlObjectMapper.writerFor(Root.class)
-                    .writeValue(modelFile.toFile(), new Root(model));
-            console.magenta("NOTE: Restart to apply exported model").nl();
+
+            StringWriter sw = new StringWriter();
+
+            yamlObjectMapper.writerFor(Root.class).writeValue(sw,
+                    new Root(model).setSpringModel(
+                            new SpringModel().setDataSource(
+                                    new SpringModel.DataSource()
+                                            .setUrl(url)
+                                            .setUsername(username)
+                                            .setPassword(password)))
+            );
+
+            logger.info(sw.toString());
+
+            logger.info("Writing model file '%s'".formatted(modelFile));
+
+            Files.writeString(modelFile, sw.toString(),
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+
+            logger.info("NOTE: Restart to apply exported model");
         }
     }
 

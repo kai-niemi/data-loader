@@ -17,7 +17,7 @@ import java.nio.file.NoSuchFileException;
 import java.util.Objects;
 
 @RestControllerAdvice
-@Profile(ProfileNames.PROXY)
+@Profile(ProfileNames.HTTP)
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler({Exception.class})
     public ProblemDetail handleAny(Throwable ex) {

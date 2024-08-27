@@ -39,7 +39,7 @@ import io.roach.volt.config.ProfileNames;
 import io.roach.volt.csv.model.ApplicationModel;
 
 @RestController
-@Profile(ProfileNames.PROXY)
+@Profile(ProfileNames.HTTP)
 public class DownloadController {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

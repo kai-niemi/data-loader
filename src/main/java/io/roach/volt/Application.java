@@ -37,7 +37,7 @@ public class Application implements PromptProvider, ApplicationRunner {
         System.out.println();
         System.out.println("Options:");
         System.out.println("--help                    this help");
-        System.out.println("--proxy                   enable http listener for proxying IMPORT commands");
+        System.out.println("--http                    enable http listener for IMPORT/COPY commands");
         System.out.println("--profiles [profile,..]   spring profiles to activate");
         System.out.println();
         System.out.println("All other options are passed to the shell.");
@@ -58,8 +58,8 @@ public class Application implements PromptProvider, ApplicationRunner {
             String arg = argsList.pop();
             if (arg.equals("--help")) {
                 printHelpAndExit("");
-            } else if (arg.equals("--proxy")) {
-                profiles.add(ProfileNames.PROXY);
+            } else if (arg.equals("--http")) {
+                profiles.add(ProfileNames.HTTP);
             } else if (arg.equals("--profiles")) {
                 if (argsList.isEmpty()) {
                     printHelpAndExit("Expected list of profile names");
@@ -76,7 +76,7 @@ public class Application implements PromptProvider, ApplicationRunner {
         }
 
         new SpringApplicationBuilder(Application.class)
-                .web(profiles.contains(ProfileNames.PROXY)
+                .web(profiles.contains(ProfileNames.HTTP)
                         ? WebApplicationType.SERVLET
                         : WebApplicationType.NONE)
                 .bannerMode(Banner.Mode.CONSOLE)

@@ -1,8 +1,7 @@
-drop type if exists account_type;
-create type account_type as enum ('A', 'L', 'E', 'R', 'C');
-
-drop type if exists transaction_type;
-create type transaction_type as enum ('GEN','TMP','PAY');
+-- drop type if exists account_type;
+-- create type account_type as enum ('A', 'L', 'E', 'R', 'C');
+-- drop type if exists transaction_type;
+-- create type transaction_type as enum ('GEN','TMP','PAY');
 
 create table account
 (

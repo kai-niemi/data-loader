@@ -125,7 +125,7 @@ public abstract class MetaDataUtils {
                             String.class).replaceAll("[\r\n\t]+", "");
         }
 
-        return createTable.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
+        return createTable.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS") + ";";
     }
 
     public static String databaseVersion(DataSource dataSource) {

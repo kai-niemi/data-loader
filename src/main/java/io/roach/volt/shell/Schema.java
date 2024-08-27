@@ -94,7 +94,7 @@ public class Schema {
             valueProvider = TableNameProvider.class) String tableName) {
         MetaDataUtils.tableNames(dataSource, tableName)
                 .forEach(name -> {
-            ansiConsole.cyan(MetaDataUtils.showCreateTable(dataSource, name)).nl();
+            ansiConsole.cyan(MetaDataUtils.showCreateTable(dataSource, name)).nl().nl();
         });
     }
 

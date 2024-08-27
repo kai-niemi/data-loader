@@ -15,8 +15,10 @@ spring:
   shell:
     command:
       script:
-        enabled: true
+        enabled: false
     interactive:
+      enabled: true
+    script:
       enabled: true
     version:
       enabled: true
@@ -40,7 +42,7 @@ spring:
     locale: en_US
   ##################################
   datasource:
-    url: jdbc:postgresql://localhost:26257/defaultdb?sslmode=disable
+    url: jdbc:postgresql://localhost:26257/volt?sslmode=disable
     driver-class-name: org.postgresql.Driver
     username: root
     password:
@@ -89,9 +91,6 @@ server:
 logging:
   pattern:
     console: "%clr(%d{${LOG_DATEFORMAT_PATTERN:HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:%5p}) [%t] %clr([%logger{39}]){cyan} %m%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}"
-  logback:
-    rollingpolicy:
-      max-history: 5
 ##################################
 application:
   queue-size: 8192

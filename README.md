@@ -34,12 +34,13 @@ in one-to-many relations. The main exception being [cartesian / cross product](h
 table relations, where aggregation needs to be done in-memory (see [Each](#each)).
 
 The tool comes with a command-line interface, an interactive shell and can also operate in 
-HTTP proxy mode to support CockroachDB `IMPORT INTO` commands consuming the generated files.
+HTTP mode to support CockroachDB `IMPORT INTO` and `COPY FROM` commands to consume 
+the generated CSV files.
 
 Main use cases:
 
-- Generate CSV files for the purpose of functional / load testing
-- Support `IMPORT INTO` command via HTTP endpoint
+- Generate large CSV files for the purpose of functional / load testing
+- Support `IMPORT INTO` and `COPY FROM` commands via HTTP endpoint
 - Merge-sort large CSV files
 
 # Getting Started 
@@ -106,9 +107,9 @@ database schema.
 
 ## Generate Configuration
 
-To create a configuration YAML file, you can either copy and modify a [template](template/) file, or generate
-one from an existing database schema. The generated files can be further fine-tuned to use proper randomization
-functions and more.
+To create a configuration YAML file, you can either copy and modify a [sample](samples/), or generate
+one from an existing database schema by introspection. The generated files can be further 
+fine-tuned to use proper randomization functions and more.
 
 ### Preparation
 
@@ -122,98 +123,74 @@ First create a `volt` database with a sample schema using [create-default.sql](s
 Next, let's create a configuration YAML file for the schema using the shell `db-export` command followed
 by a `quit` that exits the app:
 
-    echo "db-export" > cmd.txt
-    echo "quit" >> cmd.txt
-    java -jar target/volt.jar @cmd.txt
+    echo "db-export" > cmd-export.txt && echo "quit" >> cmd-export.txt
+    java -jar target/volt.jar @cmd-export.txt
 
 Check out the YAML file:
     
-    cat output/application-default.yml
+    cat .output/application-default.yml
 
 It should print content similar to [application-default.yml](samples/application-default.yml).
 
-Example:
+This sample configuration will create three separate CSV files with 100 customers, 
+100 orders and 100 order items. 
 
-    model:
-      outputPath: ".output"
-      tables:
-      - name: "customer"
-        count: "100"
-        files: 1
-        columns:
-        - name: "id"
-          gen:
-            type: "unordered"
-            batchSize: 512
-        - name: "email"
-          expression: "randomEmail()"
-        - name: "name"
-          expression: "randomFullName()"
-        - name: "password"
-          expression: "randomString(128)"
-        - name: "address1"
-          expression: "randomString(255)"
-        - name: "address2"
-          expression: "randomString(255)"
-        - name: "postcode"
-          expression: "randomString(16)"
-        - name: "city"
-          expression: "randomCity()"
-        - name: "country"
-          expression: "randomCountry()"
-        - name: "updated_at"
-          expression: "randomDateTime()"
-          ...
+Next, let's generate these files using `csv-generate`:
 
-This sample configuration will create three separate CSV files with 100 customers, 100 orders and 100 order items. 
-It will also create an `.output/import.sql` file with `IMPORT INTO` SQL statements in topological order 
-inferred from the foreign key relationships.
+    echo "csv-generate" > cmd-gen.txt && echo "quit" >> cmd-gen.txt
+    java -jar target/volt.jar @cmd-gen.txt
 
-Example:
+Upon completion, the `.output` directory will now have the following files:
 
-    IMPORT INTO customer(id,email,name,password,address1,address2,postcode,city,country,updated_at)
-    CSV DATA (
-     'http://192.168.1.113:8090/customer.csv'
-    ) WITH delimiter = ',', skip = '1', nullif = '', allow_quoted_null;
+    $ ls -1 .output
     
-    IMPORT INTO purchase_order(id,bill_address1,bill_address2,bill_city,bill_country,bill_postcode,bill_to_name,deliv_address1,deliv_address2,deliv_city,deliv_country,deliv_postcode,deliv_to_name,date_placed,status,amount,currency,version,customer_id)
-    CSV DATA (
-     'http://192.168.1.113:8090/purchase_order.csv'
-    ) WITH delimiter = ',', skip = '1', nullif = '', allow_quoted_null;
-    
-    IMPORT INTO purchase_order_item(order_id,product_id,quantity,status,amount,currency,weight_kg,item_pos)
-    CSV DATA (
-     'http://192.168.1.113:8090/purchase_order_item.csv'
-    ) WITH delimiter = ',', skip = '1', nullif = '', allow_quoted_null;
+    application-default.yml
+    customer.csv
+    purchase_order.csv
+    purchase_order_item.csv
+    import.sql
+
+The `.output/*.csv` files contains random generated CSV data based on the
+database table schema including primary and foreign key constraints.
+
+The `.output/application-default.yml` file contains the CSV layout and format
+description inferred from the existing database schema. It may need some manual
+tailoring in terms of random functions to use, number of files/rows and so on.
+See configuration section below.
+
+The `.output/import.sql` file contains `IMPORT INTO` SQL statements in 
+topological order inferred from the foreign key relationships.
+
+    cat .output/import.sql
+
+If you run volt in the http mode, you can have CockroachDB consume 
+the CSVs using `IMPORT` or `COPY`:
+
+    java -jar target/volt.jar --http
+
+Import all the CSVs in one go, in the correct order:
+
+    cockroach sql --insecure --host=localhost --database volt < .output/import.sql
 
 > Hint: If your import jobs get stuck you can cancel them with:
 
     CANCEL JOBS (WITH x AS (SHOW JOBS) SELECT job_id FROM x WHERE job_type='IMPORT' and status != 'failed');
 
-Next, let's generate all these files using `csv-generate`:
+Since `IMPORT INTO` takes the tables offline, alternatively you can use `COPY .. FROM`:
 
-    echo "csv-generate" > cmd.txt
-    echo "quit" >> cmd.txt
-    java -jar target/volt.jar @cmd.txt
+Local file example:
+    
+    echo "--insecure --database volt" > credentials.txt
+    echo "COPY customer FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/customer.csv | cockroach sql $( cat credentials.txt )
+    echo "COPY purchase_order FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/purchase_order.csv | cockroach sql $( cat credentials.txt )
+    echo "COPY purchase_order_item FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/purchase_order_item.csv | cockroach sql $( cat credentials.txt )
 
-The `.output` directory will now have:
+HTTP example (assuming `--http` mode is enabled):
 
-    customer.csv
-    purchase_order.csv
-    purchase_order_item.csv
-    import.sql
-    application-default.yml
-                                                                     
-Lastly, we can run in http proxy mode and let CockroachDB run the actual import:
+    echo "COPY customer FROM STDIN WITH CSV DELIMITER ',' HEADER;" > header.csv && curl http://localhost:8090/customer.csv | cat header.csv - | cockroach sql $( cat credentials.txt )
+    echo "COPY purchase_order FROM STDIN WITH CSV DELIMITER ',' HEADER;" > header.csv && curl http://localhost:8090/purchase_order.csv | cat header.csv - | cockroach sql $( cat credentials.txt )
+    echo "COPY purchase_order_item FROM STDIN WITH CSV DELIMITER ',' HEADER;" > header.csv && curl http://localhost:8090/purchase_order_item.csv | cat header.csv - | cockroach sql $( cat credentials.txt )
 
-    echo "db-exec --sql .output/import-account.sql" > cmd.txt
-    echo "quit" >> cmd.txt
-    java -jar target/volt.jar --proxy @cmd.txt
-                                                               
-Optionally, you can launch the interactive shell rather than use a command file:
-
-    java -jar target/volt.jar --proxy
-  
 # Configuration
 
 Reference section for the application YAML. 
@@ -520,10 +497,14 @@ Default import options are:
 | Name               | Value   |
 |--------------------|---------|
 | delimiter          | ,       |
-| fields_enclosed_by | (empty) |
+| fields_enclosed_by | "       |
 | skip               | 1       |
 | nullif             | (empty) |
 | allow_quoted_null  | (empty) |
+
+# Future Work
+
+- Allow CSV data to be generated by streaming over HTTP (thus avoiding local files entirely)
 
 # Terms of Use
 

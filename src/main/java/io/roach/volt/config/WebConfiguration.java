@@ -25,7 +25,7 @@ import org.springframework.web.util.pattern.PathPatternParser;
         EnableHypermediaSupport.HypermediaType.HAL
 })
 @Configuration
-@Profile(ProfileNames.PROXY)
+@Profile(ProfileNames.HTTP)
 public class WebConfiguration {
     @Bean
     public WebMvcConfigurer webMvcConfigurer(@Qualifier("threadPoolTaskExecutor") AsyncTaskExecutor taskExecutor,

@@ -34,6 +34,11 @@ public class AsyncConfiguration implements AsyncConfigurer {
      */
     @Override
     public AsyncTaskExecutor getAsyncExecutor() {
+        return threadPoolTaskExecutor();
+    }
+
+    @Bean(name = "threadPoolTaskExecutor", destroyMethod = "shutdown")
+    public ThreadPoolTaskExecutor threadPoolTaskExecutor() {
         int poolSize = threadPoolSize > 0 ? threadPoolSize : Runtime.getRuntime().availableProcessors();
 
         // Adjust to at least as many threads as potentially concurrent producers (# of tables)
@@ -42,27 +47,13 @@ public class AsyncConfiguration implements AsyncConfigurer {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(poolSize);
         executor.setMaxPoolSize(poolSize * 2);
-
-        executor.setThreadNamePrefix("async-");
+        executor.setThreadNamePrefix("volt-");
         executor.setAwaitTerminationSeconds(5);
-        executor.setStrictEarlyShutdown(true);
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAcceptTasksAfterContextClose(false);
-        executor.initialize();
 
-        return executor;
-    }
+//        executor.setStrictEarlyShutdown(true);
+//        executor.setWaitForTasksToCompleteOnShutdown(false);
+//        executor.setAcceptTasksAfterContextClose(false);
 
-    @Bean(name = "threadPoolTaskExecutor", destroyMethod = "shutdown")
-    public ThreadPoolTaskExecutor threadPoolTaskExecutor() {
-        int poolSize = threadPoolSize > 0 ? threadPoolSize : Runtime.getRuntime().availableProcessors();
-
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(poolSize);
-        executor.setMaxPoolSize(poolSize * 2);
-
-        executor.setThreadNamePrefix("pool-");
-        executor.setAwaitTerminationSeconds(5);
         executor.initialize();
 
         return executor;
