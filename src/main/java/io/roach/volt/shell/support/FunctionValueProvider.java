@@ -15,12 +15,12 @@ public class FunctionValueProvider implements ValueProvider {
     public List<CompletionProposal> complete(CompletionContext completionContext) {
         List<CompletionProposal> result = new ArrayList<>();
 
-        final ExpressionRegistry registry = ExpressionRegistryBuilder.build(null);
-
         String prefix = completionContext.currentWordUpToCursor();
         if (prefix == null) {
             prefix = "";
         }
+
+        final ExpressionRegistry registry = ExpressionRegistryBuilder.build(null);
 
         for (FunctionDef functionDef : registry.functionDefinitions()) {
             if (functionDef.idMatchesPrefix(prefix)) {
@@ -31,6 +31,7 @@ public class FunctionValueProvider implements ValueProvider {
                         .displayText(functionDef.getId()));
             }
         }
+
         registry.variableNames().forEach(fn -> {
             result.add(new CompletionProposal(fn)
                     .category("constant"));

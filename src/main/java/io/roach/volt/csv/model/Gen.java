@@ -1,8 +1,17 @@
 package io.roach.volt.csv.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import jakarta.validation.constraints.NotNull;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Gen {
+    public static Gen of(IdentityType type) {
+        Gen g =new Gen();
+        g.setType(type);
+        return g;
+    }
+
     @NotNull
     private IdentityType type;
 

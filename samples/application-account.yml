@@ -2,8 +2,8 @@ model:
   outputPath: ".output"
   tables:
     - name: "account"
-      count: "100"
-      files: 1
+      count: "10k"
+      files: 5
       columns:
         - name: "id"
           gen:
@@ -24,5 +24,6 @@ model:
       delimiter: ","
       skip: "1"
       allow_quoted_null: "null"
+      fields_enclosed_by: '"'
     file: "import.sql"
     prefix: "http://${local-ip}:8090/"

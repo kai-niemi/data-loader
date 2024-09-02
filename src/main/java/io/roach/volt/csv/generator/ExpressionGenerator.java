@@ -5,7 +5,7 @@ import io.roach.volt.expression.ExpressionRegistry;
 import io.roach.volt.expression.Expression;
 import org.springframework.util.StringUtils;
 
-public class ExpressionGenerator implements ColumnGenerator<Object> {
+public class ExpressionGenerator implements ValueGenerator<Object> {
     private final Column column;
 
     private final ExpressionRegistry registry;

@@ -8,8 +8,15 @@ import java.nio.file.Path;
  * Event published when a CSV producer for a table has started.
  */
 public class ProducerStartedEvent extends AbstractEvent {
-    public ProducerStartedEvent(Table table, Path path) {
+    private String producerInfo;
+
+    public ProducerStartedEvent(Table table, Path path, String producerInfo) {
         super(table, path);
+        this.producerInfo = producerInfo;
+    }
+
+    public String getProducerInfo() {
+        return producerInfo;
     }
 
     public boolean isBounded() {

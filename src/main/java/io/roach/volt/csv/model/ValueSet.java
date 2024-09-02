@@ -5,6 +5,9 @@ import jakarta.validation.constraints.NotEmpty;
 import java.util.Collections;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ValueSet<T> {
     @NotEmpty
     private List<T> values;

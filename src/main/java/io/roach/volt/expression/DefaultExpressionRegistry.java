@@ -1,9 +1,14 @@
 package io.roach.volt.expression;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A mutable variable resolver that wraps a standard Map collection.
@@ -49,6 +54,24 @@ public class DefaultExpressionRegistry implements ExpressionRegistry {
     @Override
     public Iterable<String> variableNames() {
         return variables.keySet();
+    }
+
+    @Override
+    public Iterable<String> functionCategories() {
+        return functions.values().stream()
+                .map(FunctionDef::getCategory)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Iterable<FunctionDef> functionDefinitions(String category) {
+        List<FunctionDef> defList = new ArrayList<>();
+        functions.values().forEach(functionDef -> {
+            if (functionDef.getCategory().equals(category)) {
+                defList.add(functionDef);
+            }
+        });
+        return defList;
     }
 
     @Override

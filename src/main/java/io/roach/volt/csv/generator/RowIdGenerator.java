@@ -11,7 +11,7 @@ import java.sql.SQLException;
 import java.util.Deque;
 import java.util.LinkedList;
 
-public class RowIdGenerator implements ColumnGenerator<Long> {
+public class RowIdGenerator implements ValueGenerator<Long> {
     private final DataSource dataSource;
 
     private final String function;

@@ -1,9 +1,12 @@
 package io.roach.volt.util.concurrent;
 
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
+
+import org.springframework.util.ReflectionUtils;
 
 public class CircularFifoQueue<K, V> implements FifoQueue<K, V> {
     private final Map<String, BlockingQueue<Map<K, V>>> blockingQueues
@@ -14,11 +17,11 @@ public class CircularFifoQueue<K, V> implements FifoQueue<K, V> {
 
     private final int bufferCapacity;
 
-    public CircularFifoQueue(int capacity) {
-        if (capacity <= 0) {
+    public CircularFifoQueue(int bufferCapacity) {
+        if (bufferCapacity <= 0) {
             throw new IllegalArgumentException("capacity must be > 0");
         }
-        this.bufferCapacity = capacity;
+        this.bufferCapacity = bufferCapacity;
     }
 
     private BlockingQueue<Map<K, V>> getOrCreateQueueForKey(String key) {
@@ -37,7 +40,7 @@ public class CircularFifoQueue<K, V> implements FifoQueue<K, V> {
             return getOrCreateQueueForKey(key).take();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            throw new UndeclaredThrowableException(e);
         }
     }
 
@@ -51,23 +54,31 @@ public class CircularFifoQueue<K, V> implements FifoQueue<K, V> {
         return values;
     }
 
+    private Map<K, V> immutableCopyOf(Map<K, V> values) {
+        return Map.copyOf(values);
+    }
+
     @Override
     public void put(String key, Map<K, V> values) {
         try {
-            getOrCreateQueueForKey(key).put(values);
-            getOrCreateBufferForKey(key).add(values);
+            Map<K, V> copy = immutableCopyOf(values);
+            getOrCreateQueueForKey(key)
+                    .put(copy);
+            getOrCreateBufferForKey(key)
+                    .add(copy);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            throw new UndeclaredThrowableException(e);
         }
     }
 
     @Override
     public void offer(String key, Map<K, V> values) {
+        Map<K, V> copy = immutableCopyOf(values);
         BlockingQueue<Map<K, V>> queueForKey = getOrCreateQueueForKey(key);
-        while (!queueForKey.offer(values)) {
+        while (!queueForKey.offer(copy)) {
             queueForKey.poll();
         }
-        getOrCreateBufferForKey(key).add(values);
+        getOrCreateBufferForKey(key).add(copy);
     }
 }

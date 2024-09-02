@@ -2,6 +2,9 @@ package io.roach.volt.csv.model;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Each {
     private String name;
 

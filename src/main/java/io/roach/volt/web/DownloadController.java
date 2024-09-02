@@ -1,10 +1,8 @@
 package io.roach.volt.web;
 
-import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -15,7 +13,6 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.GZIPOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +34,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import io.roach.volt.config.ProfileNames;
 import io.roach.volt.csv.model.ApplicationModel;
+import io.roach.volt.web.model.MessageModel;
+import io.roach.volt.web.support.Gzip;
 
 @RestController
 @Profile(ProfileNames.HTTP)
@@ -46,33 +45,33 @@ public class DownloadController {
     @Autowired
     private ApplicationModel applicationModel;
 
-    @GetMapping("/import-files")
-    public ResponseEntity<MessageModel> importFiles() throws IOException {
-        MessageModel model = MessageModel.from("Available import SQL files");
+    @GetMapping("/download")
+    public ResponseEntity<MessageModel> index() throws IOException {
+        MessageModel model = MessageModel.from("Local files");
 
         final Path basePath = Paths.get(applicationModel.getOutputPath());
         if (!Files.isDirectory(basePath)) {
             return ResponseEntity.ok(model);
         }
 
-        if (Files.isRegularFile(applicationModel.getImport().getPath())) {
+        if (Files.isRegularFile(applicationModel.getImportInto().getPath())) {
             model.add(Link.of(ServletUriComponentsBuilder.fromCurrentContextPath()
-                            .pathSegment(applicationModel.getImport().getFile())
+                            .pathSegment(applicationModel.getImportInto().getFile())
                             .buildAndExpand()
                             .toUriString())
-                    .withRel(LinkRelations.IMPORT_SQL_REL)
-                    .withTitle("Import SQL file")
+                    .withRel(LinkRelations.DOWNLOAD_REL)
+                    .withTitle("Download file")
                     .withType(MediaType.TEXT_PLAIN_VALUE)
             );
         }
 
-        for (Path path : findImportFiles(basePath)) {
+        for (Path path : findFiles(basePath)) {
             // Avoid URI encoding of separators
             model.add(Link.of(ServletUriComponentsBuilder.fromCurrentContextPath()
                             .pathSegment(path.toString())
                             .buildAndExpand()
                             .toUriString())
-                    .withRel(LinkRelations.IMPORT_FILE_REL)
+                    .withRel(LinkRelations.DOWNLOAD_REL)
                     .withTitle(path.getFileName().toString())
                     .withType(MediaType.TEXT_PLAIN_VALUE)
             );
@@ -81,7 +80,7 @@ public class DownloadController {
         return ResponseEntity.ok(model);
     }
 
-    private List<Path> findImportFiles(Path basePath) throws IOException {
+    private List<Path> findFiles(Path basePath) throws IOException {
         List<Path> importFiles = new ArrayList<>();
 
         final PathMatcher matcher = FileSystems.getDefault()
@@ -102,7 +101,7 @@ public class DownloadController {
         return importFiles;
     }
 
-    @RequestMapping(value = "/{*filename}")
+    @RequestMapping(value = "/download/{*filename}")
     public ResponseEntity<StreamingResponseBody> downloadFile(
             @PathVariable("filename") String path,
             @RequestHeader(value = HttpHeaders.ACCEPT_ENCODING,
@@ -139,18 +138,7 @@ public class DownloadController {
                 .headers(headers)
                 .body(out -> {
                     if (gzip) {
-                        try (InputStream is = new BufferedInputStream(
-                                new FileInputStream(absolutePath.toFile()))) {
-                            GZIPOutputStream gzipOutputStream = new GZIPOutputStream(out, true);
-                            byte[] buffer = new byte[1024 * 8];
-                            int len;
-                            while ((len = is.read(buffer)) != -1) {
-                                gzipOutputStream.write(buffer, 0, len);
-                            }
-                            gzipOutputStream.flush();
-                            gzipOutputStream.finish();
-                        }
-                        out.flush();
+                        Gzip.copy(new FileInputStream(absolutePath.toFile()), out);
                     } else {
                         Files.copy(absolutePath, out);
                     }

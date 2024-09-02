@@ -1,5 +1,6 @@
 package io.roach.volt.util.pubsub;
 
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.IntStream;
@@ -83,7 +84,7 @@ public class PublisherTest {
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new UndeclaredThrowableException(e);
         }
 
         Assertions.assertEquals(2 * 10_000, q.size());

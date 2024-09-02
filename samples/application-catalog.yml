@@ -327,7 +327,6 @@ model:
             type: "unordered"
             batchSize: 512
     - name: "product_tag"
-#      count: "100"
       files: "1"
       columns:
         - name: "product_id"
@@ -347,5 +346,6 @@ model:
       delimiter: ","
       skip: "1"
       allow_quoted_null: "null"
+      fields_enclosed_by: '"'
     file: "import.sql"
     prefix: "http://${local-ip}:8090/"

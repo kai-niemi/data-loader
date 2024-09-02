@@ -2,6 +2,9 @@ package io.roach.volt.csv.model;
 
 import java.time.temporal.ChronoUnit;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Range {
     private RangeType type;
 

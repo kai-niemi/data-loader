@@ -11,5 +11,5 @@ public interface ChunkConsumer<K,V> {
      * @param rowEstimate estimated total number of rows
      * @return true to signal continuation
      */
-    boolean consume(Map<K,V> values, long rowEstimate);
+    boolean consumeChunk(Map<K,V> values, long rowEstimate) throws Exception;
 }

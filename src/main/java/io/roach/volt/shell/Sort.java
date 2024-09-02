@@ -16,7 +16,7 @@ import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
 
-import io.roach.volt.csv.listener.AbstractEventPublisher;
+import io.roach.volt.csv.event.AbstractEventPublisher;
 import io.roach.volt.shell.mergesort.ComparatorType;
 import io.roach.volt.shell.mergesort.ExternalMerge;
 import io.roach.volt.shell.mergesort.ExternalMergeSort;

@@ -8,7 +8,7 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalUnit;
 import java.util.Optional;
 
-public class LocalTimeRangeGenerator implements ColumnGenerator<LocalTime> {
+public class LocalTimeRangeGenerator implements ValueGenerator<LocalTime> {
     private final LocalTime startTime;
 
     private final LocalTime endTime;

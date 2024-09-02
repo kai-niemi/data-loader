@@ -36,5 +36,9 @@ public interface ExpressionRegistry {
 
     Iterable<String> variableNames();
 
+    Iterable<String> functionCategories();
+
+    Iterable<FunctionDef> functionDefinitions(String category);
+
     Iterable<FunctionDef> functionDefinitions();
 }

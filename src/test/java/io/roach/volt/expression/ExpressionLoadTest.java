@@ -53,5 +53,4 @@ public class ExpressionLoadTest {
         tasks.forEach(runnable -> allFutures.add(CompletableFuture.runAsync(runnable)));
         CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[] {})).join();
     }
-
 }

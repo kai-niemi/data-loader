@@ -3,11 +3,15 @@ package io.roach.volt.web;
 public abstract class LinkRelations {
     public static final String ACTUATORS_REL = "actuators";
 
-    public static final String IMPORT_FILES_REL = "import-files";
+    public static final String DOWNLOAD_INDEX_REL = "downloads";
 
-    public static final String IMPORT_FILE_REL = "import-file";
+    public static final String DOWNLOAD_REL = "download";
 
-    public static final String IMPORT_SQL_REL = "import-sql";
+    public static final String TABLE_INDEX_REL = "tables";
+
+    public static final String TABLE_SCHEMA_REL = "table";
+
+    public static final String TABLE_FORM_REL = "table-form";
 
     // IANA standard link relations:
     // http://www.iana.org/assignments/link-relations/link-relations.xhtml

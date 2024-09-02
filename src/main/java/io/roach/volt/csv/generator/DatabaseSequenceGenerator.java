@@ -10,7 +10,7 @@ import java.sql.SQLException;
 import java.util.Deque;
 import java.util.LinkedList;
 
-public class DatabaseSequenceGenerator implements ColumnGenerator<Long> {
+public class DatabaseSequenceGenerator implements ValueGenerator<Long> {
     private final DataSource dataSource;
 
     private final String sequence;

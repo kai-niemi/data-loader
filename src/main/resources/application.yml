@@ -55,6 +55,10 @@ spring:
       catalog: public
       pool-name: volt-pool
       read-only: true
+  #############################
+  mvc:
+    problemdetails:
+      enabled: true
 #############################
 management:
   endpoints:
@@ -74,15 +78,16 @@ management:
     tags:
       application: ${spring.application.name}
 ##################################
+##################################
 server:
   port: 8090
-  error:
-    whitelabel:
-      enabled: false
-    include-stacktrace: always
-    include-message: always
-    include-binding-errors: always
-    include-exception: true
+#  error:
+#    whitelabel:
+#      enabled: false
+#    include-stacktrace: always
+#    include-message: always
+#    include-binding-errors: always
+#    include-exception: true
   compression:
     enabled: true
     min-response-size: 256
@@ -93,9 +98,8 @@ logging:
     console: "%clr(%d{${LOG_DATEFORMAT_PATTERN:HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:%5p}) [%t] %clr([%logger{39}]){cyan} %m%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}"
 ##################################
 application:
-  queue-size: 8192
-  # Default is host vCPUs x 2
+  # Default is host vCPUs x 4
   maximum-threads: -1
 ##################################
 model:
-  outputPath: .output
+  outputPath: ".output"

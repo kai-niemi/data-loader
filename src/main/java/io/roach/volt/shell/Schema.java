@@ -1,8 +1,8 @@
 package io.roach.volt.shell;
 
-import io.roach.volt.shell.metadata.ForeignKeyModel;
-import io.roach.volt.shell.metadata.MetaDataUtils;
-import io.roach.volt.shell.metadata.TableModel;
+import io.roach.volt.schema.ForeignKeyModel;
+import io.roach.volt.schema.MetaDataUtils;
+import io.roach.volt.schema.TableModel;
 import io.roach.volt.shell.support.AnotherFileValueProvider;
 import io.roach.volt.shell.support.AnsiConsole;
 import io.roach.volt.shell.support.TableNameProvider;
@@ -161,10 +161,6 @@ public class Schema {
         });
 
         ansiConsole.cyan(directedAcyclicGraph.toString())
-                .nl()
-                .green("Topological order:")
-                .nl()
-                .cyan(directedAcyclicGraph.topologicalSort(false).toString())
                 .nl()
                 .green("Topological order (inverse):")
                 .nl()

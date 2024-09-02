@@ -24,10 +24,6 @@ public class AnsiConsole {
         this.terminal = terminal;
     }
 
-    public Terminal getTerminal() {
-        return terminal;
-    }
-
     public AnsiConsole cyan(String format, Object... args) {
         return printf(AnsiColor.BRIGHT_CYAN, format, args);
     }

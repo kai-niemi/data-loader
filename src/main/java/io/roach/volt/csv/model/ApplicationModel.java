@@ -1,13 +1,14 @@
 package io.roach.volt.csv.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import jakarta.validation.constraints.NotNull;
 
 @Validated
 @ConfigurationProperties(prefix = "model")
@@ -15,22 +16,20 @@ public class ApplicationModel {
     @NotNull
     private String outputPath;
 
-    private Boolean append;
-
-    @Pattern(regexp = "^[+-]?([0-9]+\\.?[0-9]*|\\.[0-9]+)\\s?([kKmMgG]+)")
-    private String count;
-
-    @JsonProperty("import")
-    private ImportSettings importSettings = ImportSettings.createDefault();
-
     private List<Table> tables = new ArrayList<>();
 
-    public ImportSettings getImport() {
-        return importSettings;
+    @JsonProperty("import-into")
+    private ImportInto importInto;
+
+    public ImportInto getImportInto() {
+        if (importInto == null) {
+            importInto =  ImportInto.createDefault();
+        }
+        return importInto;
     }
 
-    public void setImport(ImportSettings importSettings) {
-        this.importSettings = importSettings;
+    public void setImportInto(ImportInto importInto) {
+        this.importInto = importInto;
     }
 
     public List<Table> getTables() {
@@ -41,27 +40,11 @@ public class ApplicationModel {
         this.tables = tables;
     }
 
-    public String getCount() {
-        return count;
-    }
-
-    public void setCount(String count) {
-        this.count = count;
-    }
-
     public String getOutputPath() {
         return outputPath;
     }
 
     public void setOutputPath(String outputPath) {
         this.outputPath = outputPath;
-    }
-
-    public Boolean isAppend() {
-        return append;
-    }
-
-    public void setAppend(Boolean append) {
-        this.append = append;
     }
 }

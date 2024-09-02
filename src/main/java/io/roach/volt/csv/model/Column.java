@@ -1,8 +1,17 @@
 package io.roach.volt.csv.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import jakarta.validation.constraints.NotNull;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Column {
+    public static Column of(String name) {
+        Column column = new Column();
+        column.setName(name);
+        return column;
+    }
+
     @NotNull
     private String name;
 
@@ -111,5 +120,20 @@ public class Column {
     @Override
     public int hashCode() {
         return name.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "Column{" +
+                "constant='" + constant + '\'' +
+                ", name='" + name + '\'' +
+                ", expression='" + expression + '\'' +
+                ", each=" + each +
+                ", ref=" + ref +
+                ", range=" + range +
+                ", gen=" + gen +
+                ", set=" + set +
+                ", hidden=" + hidden +
+                '}';
     }
 }

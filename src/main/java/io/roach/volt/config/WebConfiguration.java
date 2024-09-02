@@ -1,6 +1,5 @@
 package io.roach.volt.config;
 
-import io.roach.volt.web.LinkRelations;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +18,8 @@ import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.util.pattern.PathPatternParser;
 
+import io.roach.volt.web.LinkRelations;
+
 @EnableWebMvc
 @EnableHypermediaSupport(type = {
         EnableHypermediaSupport.HypermediaType.HAL_FORMS,
@@ -28,7 +29,7 @@ import org.springframework.web.util.pattern.PathPatternParser;
 @Profile(ProfileNames.HTTP)
 public class WebConfiguration {
     @Bean
-    public WebMvcConfigurer webMvcConfigurer(@Qualifier("threadPoolTaskExecutor") AsyncTaskExecutor taskExecutor,
+    public WebMvcConfigurer webMvcConfigurer(@Qualifier("asyncTaskExecutor") AsyncTaskExecutor taskExecutor,
                                              CallableProcessingInterceptor callableProcessingInterceptor) {
         return new WebMvcConfigurer() {
             @Override

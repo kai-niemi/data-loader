@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.shell.standard.ShellCommandGroup;
 import org.springframework.shell.standard.ShellComponent;
@@ -22,7 +23,7 @@ public class Exit implements Quit.Command {
     private ConfigurableApplicationContext applicationContext;
 
     @Autowired
-    @Qualifier("threadPoolTaskExecutor")
+    @Qualifier("asyncTaskExecutor")
     private ThreadPoolTaskExecutor threadPoolExecutor;
 
     @Autowired
@@ -30,22 +31,18 @@ public class Exit implements Quit.Command {
 
     @ShellMethod(value = "Exit the shell", key = {"q", "x", "quit", "exit"})
     public void exit() {
-        while (threadPoolExecutor.getActiveCount() > 0) {
-            ansiConsole.magenta("Waiting for %d workers to finish"
-                    .formatted(threadPoolExecutor.getActiveCount())).nl();
-            try {
-                TimeUnit.MILLISECONDS.sleep(1000);
-            } catch (InterruptedException e) {
-            }
+        threadPoolExecutor.shutdown();
+
+        if (threadPoolExecutor.getActiveCount() > 0) {
+            ansiConsole.magenta("There are still %d pending worker(s) - unable"
+                    .formatted(threadPoolExecutor.getActiveCount()))
+                    .nl();
+            return;
         }
 
-        ansiConsole.magenta("Exiting - bye! %s"
-                .formatted(AsciiArt.bye())).nl();
-
-        threadPoolExecutor.initiateShutdown();
+        ansiConsole.magenta("Exiting - bye! %s".formatted(AsciiArt.bye())).nl();
 
         SpringApplication.exit(applicationContext, () -> 0);
-
         System.exit(0);
     }
 }

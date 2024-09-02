@@ -1,32 +1,5 @@
 package io.roach.volt.shell;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.roach.volt.csv.TableConfigException;
-import io.roach.volt.csv.event.CancellationEvent;
-import io.roach.volt.csv.event.CompletionEvent;
-import io.roach.volt.csv.event.GenericEvent;
-import io.roach.volt.csv.event.ProduceStartEvent;
-import io.roach.volt.csv.event.ProducerFinishedEvent;
-import io.roach.volt.csv.event.ProducerStartedEvent;
-import io.roach.volt.csv.listener.AbstractEventPublisher;
-import io.roach.volt.csv.model.ApplicationModel;
-import io.roach.volt.csv.model.Root;
-import io.roach.volt.csv.model.Table;
-import io.roach.volt.csv.producer.ChunkProducers;
-import io.roach.volt.shell.support.AnsiConsole;
-import io.roach.volt.util.AsciiArt;
-import io.roach.volt.util.Multiplier;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.event.EventListener;
-import org.springframework.shell.Availability;
-import org.springframework.shell.standard.ShellCommandGroup;
-import org.springframework.shell.standard.ShellComponent;
-import org.springframework.shell.standard.ShellMethod;
-import org.springframework.shell.standard.ShellMethodAvailability;
-import org.springframework.shell.standard.ShellOption;
-import org.springframework.util.StringUtils;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -37,18 +10,49 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.event.EventListener;
+import org.springframework.shell.Availability;
+import org.springframework.shell.standard.ShellCommandGroup;
+import org.springframework.shell.standard.ShellComponent;
+import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.ShellMethodAvailability;
+import org.springframework.shell.standard.ShellOption;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.roach.volt.csv.TableConfigException;
+import io.roach.volt.csv.event.AbstractEventPublisher;
+import io.roach.volt.csv.event.CancellationEvent;
+import io.roach.volt.csv.event.CompletionEvent;
+import io.roach.volt.csv.event.GenericEvent;
+import io.roach.volt.csv.event.ProducerFinishedEvent;
+import io.roach.volt.csv.event.ProducerStartEvent;
+import io.roach.volt.csv.event.ProducerStartedEvent;
+import io.roach.volt.csv.model.ApplicationModel;
+import io.roach.volt.csv.model.Root;
+import io.roach.volt.csv.model.Table;
+import io.roach.volt.csv.producer.AsyncChunkProducers;
+import io.roach.volt.shell.support.AnsiConsole;
+import io.roach.volt.util.AsciiArt;
+
 @ShellComponent
 @ShellCommandGroup(CommandGroups.GEN)
 public class CSV extends AbstractEventPublisher {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    @Autowired
+    private AnsiConsole console;
+
     @Autowired
     private ApplicationModel applicationModel;
 
     @Autowired
     @Qualifier("yamlObjectMapper")
     private ObjectMapper yamlObjectMapper;
-
-    @Autowired
-    private AnsiConsole console;
 
     private final List<Path> activeProducers = Collections.synchronizedList(new ArrayList<>());
 
@@ -98,36 +102,18 @@ public class CSV extends AbstractEventPublisher {
     }
 
     private void validateModel() {
-        double total = 0;
-
         for (Table table : applicationModel.getTables()) {
-            int count = 0;
-
-            if (StringUtils.hasLength(table.getCount())) {
-                if (table.getCount().contains("%")) {
-                    double percentage = Double.parseDouble(table.getCount().replace("%", ""));
-                    if (percentage < 0 || percentage > 100) {
-                        throw new TableConfigException("Percentage must be 0 >= N <= 100", table);
-                    }
-                    total += percentage;
-                    count = (int) (Multiplier.parseDouble(applicationModel.getCount()) * percentage / 100.0);
-                } else {
-                    count = (int) Multiplier.parseDouble(table.getCount());
-                }
-            }
-
-            table.setFinalCount(count);
-
             // Find suitable chunk producer for table and validate
-            List<ChunkProducers.ProducerBuilder> builders = ChunkProducers.options()
+            List<AsyncChunkProducers.ProducerFactory> builders = AsyncChunkProducers.options()
                     .stream()
-                    .filter(producerBuilder -> producerBuilder.test(table))
+                    .filter(producerFactory -> producerFactory.test(table))
                     .toList();
 
             builders.forEach(builder -> builder.validate(table));
 
             if (builders.isEmpty()) {
-                throw new TableConfigException("No suitable chunk producer - ambiguous column refs and/or row counts", table);
+                throw new TableConfigException("No suitable chunk producer - ambiguous column refs and/or row counts",
+                        table);
             }
 
             if (builders.size() > 1) {
@@ -139,11 +125,6 @@ public class CSV extends AbstractEventPublisher {
             console.red("No tables found in current model. "
                     + "Use the schema export command 'db-export' or edit the application model YAML file directly. %s"
                     .formatted(AsciiArt.shrug())).nl();
-        }
-
-        if (total > 0 && total != 100.0) {
-            console.red("Table row distribution does not add up to 100%% but %1f - %s"
-                    .formatted(total, AsciiArt.shrug())).nl();
         }
     }
 
@@ -171,15 +152,13 @@ public class CSV extends AbstractEventPublisher {
         for (Table table : applicationModel.getTables()) {
             final int files = table.getFiles();
 
-            table.setFinalCount(table.getFinalCount() / files);
-
             IntStream.rangeClosed(1, files).forEach(value -> {
                 Path path = basePath.resolve(files > 1
                         ? "%s%s-%03d.csv".formatted(table.getName(), suffix, value)
                         : "%s%s.csv".formatted(table.getName(), suffix)
                 );
 
-                publishEvent(new ProduceStartEvent(table, path, quit));
+                publishEvent(new ProducerStartEvent(table, path, quit));
             });
         }
     }

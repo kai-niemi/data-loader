@@ -6,7 +6,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SequenceGenerator implements ColumnGenerator<Long> {
+public class SequenceGenerator implements ValueGenerator<Long> {
     private final long startNumber;
 
     private final long stopNumber;

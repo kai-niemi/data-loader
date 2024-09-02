@@ -57,8 +57,7 @@ select option in "<Start>" "<Quit>" "${options[@]}" ;  do
       break
       ;;
     "<Start>")
-      fn_run
-      exit 0
+      break
       ;;
     "<Quit>")
       exit 0

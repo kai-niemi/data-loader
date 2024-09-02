@@ -13,6 +13,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import io.roach.volt.config.ProfileNames;
 import io.roach.volt.util.RandomData;
+import io.roach.volt.web.model.MessageModel;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -32,9 +33,14 @@ public class IndexController {
         index.setNotice(RandomData.randomRoachFact());
 
         index.add(linkTo(methodOn(DownloadController.class)
-                .importFiles())
-                .withRel(LinkRelations.IMPORT_FILES_REL)
-                .withTitle("Import file index"));
+                .index())
+                .withRel(LinkRelations.DOWNLOAD_INDEX_REL)
+                .withTitle("File download index"));
+
+        index.add(linkTo(methodOn(TableController.class)
+                .index())
+                .withRel(LinkRelations.TABLE_INDEX_REL)
+                .withTitle("Table export index"));
 
         index.add(Link.of(ServletUriComponentsBuilder.fromCurrentContextPath()
                         .pathSegment("actuator")

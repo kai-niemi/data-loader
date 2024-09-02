@@ -57,14 +57,12 @@ public class CartesianTest {
 
         List<?> currentSet = sets.get(index);
 
-        return currentSet.stream().flatMap(element -> {
-            return cartesianProduct(sets, index + 1)
-                    .map(list -> {
-                        List<Object> newList = new ArrayList<>(list);
-                        newList.add(0, element);
-                        return newList;
-                    });
-        });
+        return currentSet.stream().flatMap(element -> cartesianProduct(sets, index + 1)
+                .map(list -> {
+                    List<Object> newList = new ArrayList<>(list);
+                    newList.add(0, element);
+                    return newList;
+                }));
     }
 
     public static List<List<?>> getCartesianProduct(List<List<?>> sets) {

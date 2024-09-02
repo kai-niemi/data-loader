@@ -6,7 +6,7 @@ public class TableConfigException extends ModelConfigException {
     private final Table table;
 
     public TableConfigException(String message, Table table) {
-        super("Configuration error in table '" + table.getName() + "': " + message);
+        super("Configuration error for table '" + table.getName() + "': " + message);
         this.table = table;
     }
 

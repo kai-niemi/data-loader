@@ -21,7 +21,7 @@ import io.roach.volt.shell.support.AnsiConsole;
 @ShellCommandGroup(CommandGroups.ADMIN)
 public class SystemInfo {
     @Autowired
-    @Qualifier("threadPoolTaskExecutor")
+    @Qualifier("asyncTaskExecutor")
     private ThreadPoolTaskExecutor threadPoolExecutor;
 
     @Autowired

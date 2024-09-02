@@ -1,7 +1,7 @@
 package io.roach.volt.shell.support;
 
-import io.roach.volt.shell.metadata.MetaDataUtils;
-import io.roach.volt.shell.metadata.TableModel;
+import io.roach.volt.schema.MetaDataUtils;
+import io.roach.volt.schema.TableModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.shell.CompletionContext;
 import org.springframework.shell.CompletionProposal;

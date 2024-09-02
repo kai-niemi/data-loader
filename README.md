@@ -418,7 +418,7 @@ Create a value from a referenced table column.
 
 If a table contains one or more `each` columns, the value for a `ref` column will be picked from
 the same row as the `each` column. If not then it will be picked randomly from a rolling window
-of cached rows. The size of the queue is 8192 by default and configurable with `application.queue-size`. 
+of cached rows. 
 
 ---
 

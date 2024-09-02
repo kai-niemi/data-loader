@@ -1,70 +1,75 @@
 package io.roach.volt.csv.producer;
 
-import io.roach.volt.csv.generator.ColumnGenerator;
-import io.roach.volt.csv.model.Column;
-import io.roach.volt.csv.model.Ref;
-import io.roach.volt.csv.model.Table;
-import io.roach.volt.util.pubsub.Publisher;
-import io.roach.volt.util.pubsub.Topic;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class UpstreamChunkProducer extends AbstractChunkProducer<String, Object> {
-    public UpstreamChunkProducer(Table table,
-                                 Map<Column, ColumnGenerator<?>> columnGenerators,
-                                 int queueCapacity) {
-        super(table, columnGenerators, queueCapacity);
-    }
+import io.roach.volt.csv.model.Column;
+import io.roach.volt.csv.model.Ref;
+import io.roach.volt.csv.model.Table;
+import io.roach.volt.util.pubsub.Message;
+import io.roach.volt.util.pubsub.MessageListener;
+import io.roach.volt.util.pubsub.Topic;
 
+public class UpstreamChunkProducer extends AsyncChunkProducer {
     @Override
-    protected void initialize(Publisher publisher) {
+    protected void doInitialize() {
         Set<String> upstreamRefs = new HashSet<>();
 
-        getTable().filterColumns(Table.WITH_REF)
+        table.filterColumns(Table.WITH_REF)
                 .stream()
                 .map(Column::getRef)
-                .forEach(ref -> upstreamRefs.add(ref.getName()));
+                .forEach(ref -> {
+                    logger.debug("Upstream producer '%s' subscribing to random items of '%s'"
+                            .formatted(table.getName(), ref.getColumn()));
 
-        upstreamRefs.forEach(ref -> {
-            getLogger().debug("Upstream producer '%s' subscribing to random items of '%s'"
-                    .formatted(getTable().getName(), ref));
+                    if (upstreamRefs.add(ref.getName())) {
+                        publisher.<Map<String, Object>>getTopic(ref.getName())
+                                .addMessageListener(new MessageListener<>() {
+//                                    @Override
+//                                    public String getName() {
+//                                        return "Upstream ref for table '%s' column '%s'"
+//                                                .formatted(table.getName(), ref.getColumn());
+//                                    }
 
-            publisher.<Map<String, Object>>getTopic(ref)
-                    .addMessageListener(message ->
-                            getFifoQueue().offer(message.getTopic(), message.getPayload()));
-        });
+                                    @Override
+                                    public void onMessage(Message<Map<String, Object>> message) {
+                                        fifoQueue.offer(message.getTopic(), message.getPayload());
+                                    }
+                                });
+                    }
+                });
     }
 
     @Override
-    protected void doProduce(Publisher publisher,
-                             ChunkConsumer<String, Object> consumer) {
-        Topic<Map<String, Object>> topic = publisher.getTopic(getTable().getName());
+    public void produceChunks(ChunkConsumer<String, Object> consumer) throws Exception {
+        Topic<Map<String, Object>> topic = publisher.getTopic(table.getName());
 
-        for (int i = 0; i < getTable().getFinalCount(); i++) {
+        for (int i = 0; i < table.getFinalCount(); i++) {
+            Map<String, Object> orderedValues = new LinkedHashMap<>();
             Map<String, Map<String, Object>> observedMap = new HashMap<>();
-            Map<String, Object> orderedMap = new LinkedHashMap<>();
 
-            for (Column col : getTable().filterColumns(column -> true)) {
+            for (Column col : table.filterColumns(column -> true)) {
                 Object v;
                 Ref ref = col.getRef();
                 if (ref != null) {
                     Map<String, Object> refValues =
-                            observedMap.computeIfAbsent(ref.getName(), getFifoQueue()::selectRandom);
+                            observedMap.computeIfAbsent(ref.getName(), fifoQueue::selectRandom);
                     v = refValues.get(ref.getColumn());
                 } else {
-                    v = getColumnGenerators().get(col).nextValue();
+                    v = columnGenerators.get(col).nextValue();
                 }
 
-                orderedMap.put(col.getName(), v);
+                orderedValues.put(col.getName(), v);
             }
 
-            topic.publishAsync(orderedMap);
+            topic.publishAsync(orderedValues);
 
-            if (!consumer.consume(orderedMap, getTable().getFinalCount())) {
+            Map<String, Object> copy = filterIncludes(orderedValues);
+
+            if (!consumer.consumeChunk(copy, table.getFinalCount())) {
                 break;
             }
         }
