@@ -8,7 +8,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.IntStream;
+import java.util.concurrent.CountDownLatch;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -149,17 +149,11 @@ public class CSV extends AbstractEventPublisher {
             throw new RuntimeException("Base path is not writable: " + basePath);
         }
 
+        final CountDownLatch latch = new CountDownLatch(applicationModel.getTables().size());
+
         for (Table table : applicationModel.getTables()) {
-            final int files = table.getFiles();
-
-            IntStream.rangeClosed(1, files).forEach(value -> {
-                Path path = basePath.resolve(files > 1
-                        ? "%s%s-%03d.csv".formatted(table.getName(), suffix, value)
-                        : "%s%s.csv".formatted(table.getName(), suffix)
-                );
-
-                publishEvent(new ProducerStartEvent(table, path, quit));
-            });
+            Path path = basePath.resolve("%s%s.csv".formatted(table.getName(), suffix));
+            publishEvent(new ProducerStartEvent(table, path, latch, quit));
         }
     }
 }

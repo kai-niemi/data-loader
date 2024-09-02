@@ -78,7 +78,7 @@ public class PublisherTest {
         });
 
         IntStream.rangeClosed(1, 10_000).forEach(value -> {
-            topic.publishAsync(value);
+            topic.publish(value);
         });
 
         try {

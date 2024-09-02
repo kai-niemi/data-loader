@@ -10,8 +10,7 @@ model:
   outputPath: ".output"
   tables:
     - name: "orders"
-      count: "5"
-      files: "1"
+      count: "100"
       columns:
         - name: "id"
           gen:

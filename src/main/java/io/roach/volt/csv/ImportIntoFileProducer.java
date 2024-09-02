@@ -37,7 +37,7 @@ import io.roach.volt.util.graph.DirectedAcyclicGraph;
  * for issuing IMPORT commands.
  */
 @Component
-public class ImportIntoProducer extends AbstractEventPublisher {
+public class ImportIntoFileProducer extends AbstractEventPublisher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired

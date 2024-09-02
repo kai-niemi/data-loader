@@ -28,7 +28,7 @@ import io.roach.volt.shell.support.AnsiConsole;
 import io.roach.volt.util.ByteUtils;
 
 @Component
-public class EventLogger extends AbstractEventPublisher {
+public class ProducerLifecycleListener extends AbstractEventPublisher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final List<Table> activeTables = Collections.synchronizedList(new ArrayList<>());

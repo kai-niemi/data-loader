@@ -14,10 +14,55 @@ import io.roach.volt.util.pubsub.Topic;
 
 public class DownstreamChunkProducer extends AsyncChunkProducer {
     @Override
-    public void produceChunks(ChunkConsumer<String, Object> consumer) throws Exception {
-        final Each each = subscribeToUpstreamTopic();
+    protected void doInitialize() {
+        Each each = findUpstreamEach();
 
-        final Topic<Map<String, Object>> topic = publisher.getTopic(table.getName());
+        logger.debug("Downstream producer '%s' subscribing to each item of '%s'"
+                .formatted(table.getName(), each.getName()));
+
+        publisher.<Map<String, Object>>getTopic(each.getName())
+                .addMessageListener(new MessageListener<>() {
+                    @Override
+                    public void onMessage(Message<Map<String, Object>> message) {
+                        if (message.getPayload().isEmpty()) {
+                            logger.debug("Downstream producer '%s' received poison pill for '%s'"
+                                    .formatted(table.getName(), each.getName()));
+                        }
+                        fifoQueue.put(message.getTopic(), message.getPayload());
+                    }
+                });
+
+        table.filterColumns(Table.WITH_REF)
+                .stream()
+                .map(Column::getRef)
+                .forEach(ref -> {
+                    publisher.<Map<String, Object>>getTopic(ref.getName())
+                            .addMessageListener(new MessageListener<>() {
+                                @Override
+                                public void onMessage(Message<Map<String, Object>> message) {
+                                    fifoQueue.offer(message.getTopic(), message.getPayload());
+                                }
+                            });
+                });
+    }
+
+    private Each findUpstreamEach() {
+        return table.filterColumns(Table.WITH_EACH)
+                .stream()
+                .map(Column::getEach)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    @Override
+    public void produceChunks(ChunkConsumer<String, Object> consumer) throws Exception {
+        Each each = findUpstreamEach();
+
+        Topic<Map<String, Object>> topic = publisher.getTopic(table.getName());
+        if (!topic.hasMessageListeners()) {
+            topic = new Topic.Empty<>();
+        }
+
         final int rowEstimate = -1;
 
         // Wait for upstream values or poison pill to cancel (empty collection)
@@ -49,7 +94,7 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
                     orderedMap.put(col.getName(), v);
                 }
 
-                topic.publishAsync(orderedMap);
+                topic.publish(orderedMap);
 
                 Map<String, Object> copy = filterIncludes(orderedMap);
 
@@ -61,61 +106,7 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
             upstreamValues = fifoQueue.take(each.getName());
         }
 
-        topic.publishAsync(Map.of()); // poison pill
-    }
-
-    private Each subscribeToUpstreamTopic() {
-        Each each = table.filterColumns(Table.WITH_EACH)
-                .stream()
-                .map(Column::getEach)
-                .findFirst()
-                .orElseThrow();
-
-        logger.debug("Downstream producer '%s' subscribing to each item of '%s'"
-                .formatted(table.getName(), each.getName()));
-
-        publisher.<Map<String, Object>>getTopic(each.getName())
-                .addMessageListener(new MessageListener<>() {
-//                    @Override
-//                    public String getName() {
-//                        return "Downstream each for table '%s' column '%s'"
-//                                .formatted(table.getName(), each.getColumn());
-//                    }
-
-                    @Override
-                    public void onMessage(Message<Map<String, Object>> message) {
-                        if (message.getPayload().isEmpty()) {
-                            logger.debug("Downstream producer '%s' received poison pill for '%s'"
-                                    .formatted(table.getName(), each.getName()));
-                        }
-                        fifoQueue.put(message.getTopic(), message.getPayload());
-
-                    }
-                });
-
-        table.filterColumns(Table.WITH_REF)
-                .stream()
-                .map(Column::getRef)
-                .forEach(ref -> {
-                    logger.debug("Downstream producer '%s' subscribing to random items of '%s'"
-                            .formatted(table.getName(), ref.getName()));
-
-                    publisher.<Map<String, Object>>getTopic(ref.getName())
-                            .addMessageListener(new MessageListener<>() {
-//                                @Override
-//                                public String getName() {
-//                                    return "Downstream ref for table '%s' column '%s'"
-//                                            .formatted(table.getName(), ref.getColumn());
-//                                }
-
-                                @Override
-                                public void onMessage(Message<Map<String, Object>> message) {
-                                    fifoQueue.offer(message.getTopic(), message.getPayload());
-                                }
-                            });
-                });
-
-        return each;
+        topic.publish(Map.of()); // poison pill
     }
 }
 

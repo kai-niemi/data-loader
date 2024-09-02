@@ -15,6 +15,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.sql.DataSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,8 +44,10 @@ import io.roach.volt.csv.stream.CsvStreamWriterBuilder;
 import io.roach.volt.util.pubsub.Publisher;
 
 @Component
-public class CsvProducer extends AbstractEventPublisher {
+public class CsvFileProducer extends AbstractEventPublisher {
     private final AtomicBoolean cancellationRequested = new AtomicBoolean();
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private ApplicationModel applicationModel;
@@ -92,6 +96,15 @@ public class CsvProducer extends AbstractEventPublisher {
         chunkProducer.setCurrentRow(currentRow);
         chunkProducer.setTable(table);
         chunkProducer.initialize();
+
+        try {
+            event.getTarget().getStartLatch().countDown();
+            logger.debug("Waiting for latch");
+            event.getTarget().getStartLatch().await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
 
         try (CsvStreamWriter<Map<String, Object>> writer = createCsvStreamWriter(table, path)) {
             publishEvent(new ProducerStartedEvent(table, path, chunkProducer.getClass().getSimpleName()));

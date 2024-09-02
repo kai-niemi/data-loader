@@ -31,7 +31,7 @@ public abstract class AsyncChunkProducer implements ChunkProducer<String, Object
 
     protected final Map<Column, ValueGenerator<?>> columnGenerators = new LinkedHashMap<>();
 
-    protected final FifoQueue<String, Object> fifoQueue = new CircularFifoQueue<>(8196);
+    protected final FifoQueue<String, Object> fifoQueue = new CircularFifoQueue<>(8192);
 
     protected DataSource dataSource;
 

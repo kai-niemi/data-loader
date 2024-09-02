@@ -3,7 +3,6 @@ model:
   tables:
     - name: "payment_method"
       count: "100"
-      files: "1"
       columns:
         - name: "payment_type"
           expression: "randomString(15)"
@@ -34,9 +33,9 @@ model:
           expression: "randomString(255)"
         - name: "voucher_code"
           expression: "randomString(25)"
+
     - name: "customer"
       count: "100"
-      files: "1"
       columns:
         - name: "id"
           gen:
@@ -73,8 +72,8 @@ model:
           ref:
             name: "payment_method"
             column: "id"
+
     - name: "customer_payment_method"
-      files: "1"
       columns:
         - name: "user_id"
           each:
@@ -86,9 +85,9 @@ model:
             name: "payment_method"
             column: "id"
             multiplier: 1
+
     - name: "attachment"
       count: "100"
-      files: "1"
       columns:
         - name: "id"
           gen:
@@ -109,8 +108,8 @@ model:
           expression: "randomString(64)"
         - name: "size"
           expression: "randomLong()"
+
     - name: "orders"
-      files: "1"
       columns:
         - name: "id"
           gen:
@@ -168,9 +167,9 @@ model:
           ref:
             name: "payment_method"
             column: "id"
+
     - name: "product"
       count: "100"
-      files: "1"
       columns:
         - name: "id"
           gen:
@@ -195,9 +194,8 @@ model:
           expression: "randomString(128)"
         - name: "version"
           expression: "randomInt()"
+
     - name: "product_variation"
-#      count: "100"
-      files: "1"
       columns:
         - name: "id"
           gen:
@@ -217,9 +215,9 @@ model:
             name: "product"
             column: "id"
             multiplier: 1
+
     - name: "category"
       count: "100"
-      files: "1"
       columns:
         - name: "category_type"
           expression: "randomString(15)"
@@ -242,8 +240,8 @@ model:
           expression: "randomInt()"
         - name: "parent_id"
           expression: "randomLong()"
+
     - name: "categorized_product"
-      files: "1"
       columns:
         - name: "category_id"
           each:
@@ -266,9 +264,8 @@ model:
             type: "sequence"
             from: "1"
             step: 1
+
     - name: "product_variation_attribute"
-#      count: "100"
-      files: "1"
       columns:
         - name: "product_variation_id"
           each:
@@ -279,8 +276,8 @@ model:
           expression: "randomString(512)"
         - name: "name"
           expression: "randomString(55)"
+
     - name: "product_attachment"
-      files: "1"
       columns:
         - name: "product_id"
           each:
@@ -297,8 +294,8 @@ model:
             type: "sequence"
             from: "1"
             step: 1
+
     - name: "order_item"
-      files: "1"
       columns:
         - name: "order_id"
           each:
@@ -326,8 +323,8 @@ model:
           gen:
             type: "unordered"
             batchSize: 512
+
     - name: "product_tag"
-      files: "1"
       columns:
         - name: "product_id"
           each:

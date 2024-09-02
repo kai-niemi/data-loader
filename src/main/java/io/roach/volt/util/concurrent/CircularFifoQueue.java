@@ -6,8 +6,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 
-import org.springframework.util.ReflectionUtils;
-
 public class CircularFifoQueue<K, V> implements FifoQueue<K, V> {
     private final Map<String, BlockingQueue<Map<K, V>>> blockingQueues
             = new ConcurrentHashMap<>();
@@ -36,11 +34,12 @@ public class CircularFifoQueue<K, V> implements FifoQueue<K, V> {
 
     @Override
     public Map<K, V> take(String key) {
+        BlockingQueue<Map<K, V>> q = getOrCreateQueueForKey(key);
         try {
-            return getOrCreateQueueForKey(key).take();
+            return q.take();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new UndeclaredThrowableException(e);
+            throw new UndeclaredThrowableException(e, "Interrupted take for key: " + key);
         }
     }
 
@@ -68,7 +67,7 @@ public class CircularFifoQueue<K, V> implements FifoQueue<K, V> {
                     .add(copy);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new UndeclaredThrowableException(e);
+            throw new UndeclaredThrowableException(e, "Interrupted put for key " + key);
         }
     }
 

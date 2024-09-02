@@ -16,7 +16,7 @@ import io.roach.volt.util.pubsub.Topic;
 public class UpstreamChunkProducer extends AsyncChunkProducer {
     @Override
     protected void doInitialize() {
-        Set<String> upstreamRefs = new HashSet<>();
+        Set<String> refs = new HashSet<>();
 
         table.filterColumns(Table.WITH_REF)
                 .stream()
@@ -25,15 +25,9 @@ public class UpstreamChunkProducer extends AsyncChunkProducer {
                     logger.debug("Upstream producer '%s' subscribing to random items of '%s'"
                             .formatted(table.getName(), ref.getColumn()));
 
-                    if (upstreamRefs.add(ref.getName())) {
+                    if (refs.add(ref.getName())) {
                         publisher.<Map<String, Object>>getTopic(ref.getName())
                                 .addMessageListener(new MessageListener<>() {
-//                                    @Override
-//                                    public String getName() {
-//                                        return "Upstream ref for table '%s' column '%s'"
-//                                                .formatted(table.getName(), ref.getColumn());
-//                                    }
-
                                     @Override
                                     public void onMessage(Message<Map<String, Object>> message) {
                                         fifoQueue.offer(message.getTopic(), message.getPayload());
@@ -46,6 +40,9 @@ public class UpstreamChunkProducer extends AsyncChunkProducer {
     @Override
     public void produceChunks(ChunkConsumer<String, Object> consumer) throws Exception {
         Topic<Map<String, Object>> topic = publisher.getTopic(table.getName());
+        if (!topic.hasMessageListeners()) {
+            topic = new Topic.Empty<>();
+        }
 
         for (int i = 0; i < table.getFinalCount(); i++) {
             Map<String, Object> orderedValues = new LinkedHashMap<>();
@@ -65,7 +62,7 @@ public class UpstreamChunkProducer extends AsyncChunkProducer {
                 orderedValues.put(col.getName(), v);
             }
 
-            topic.publishAsync(orderedValues);
+            topic.publish(orderedValues);
 
             Map<String, Object> copy = filterIncludes(orderedValues);
 
@@ -74,6 +71,6 @@ public class UpstreamChunkProducer extends AsyncChunkProducer {
             }
         }
 
-        topic.publishAsync(Map.of()); // poison pill
+        topic.publish(Map.of()); // poison pill
     }
 }

@@ -66,7 +66,7 @@ public abstract class AsyncChunkProducers {
 
         @Override
         public AsyncChunkProducer get() {
-            return new CrossProductChunkProducer();
+            return new CartesianChunkProducer();
         }
     }
 

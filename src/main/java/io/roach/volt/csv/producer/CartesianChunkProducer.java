@@ -1,6 +1,5 @@
 package io.roach.volt.csv.producer;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -10,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.util.Assert;
@@ -23,47 +23,37 @@ import io.roach.volt.util.pubsub.Message;
 import io.roach.volt.util.pubsub.MessageListener;
 import io.roach.volt.util.pubsub.Topic;
 
-public class CrossProductChunkProducer extends AsyncChunkProducer {
+public class CartesianChunkProducer extends AsyncChunkProducer {
     private static final int WARN_THRESHOLD = 10_000_000;
 
     @Override
     protected void doInitialize() {
-        Set<String> topics = new HashSet<>();
+        Set<String> eachSet = new HashSet<>();
 
         table.filterColumns(Table.WITH_EACH)
                 .stream()
                 .map(Column::getEach)
                 .forEach(each -> {
-                    topics.add(each.getName());
-
-                    publisher.<Map<String, Object>>getTopic(each.getName())
-                            .addMessageListener(new MessageListener<>() {
-//                                @Override
-//                                public String getName() {
-//                                    return "CrossProduct ref for table '%s' column '%s'"
-//                                            .formatted(table.getName(), each.getColumn());
-//                                }
-
-                                @Override
-                                public void onMessage(Message<Map<String, Object>> message) {
-                                    fifoQueue.put(message.getTopic(), message.getPayload());
-                                }
-                            });
+                    if (eachSet.add(each.getName())) {
+                        publisher.<Map<String, Object>>getTopic(each.getName())
+                                .addMessageListener(new MessageListener<>() {
+                                    @Override
+                                    public void onMessage(Message<Map<String, Object>> message) {
+                                        fifoQueue.put(message.getTopic(), message.getPayload());
+                                    }
+                                });
+                    }
                 });
+
+        Set<String> refSet = new HashSet<>();
 
         table.filterColumns(Table.WITH_REF)
                 .stream()
                 .map(Column::getRef)
                 .forEach(ref -> {
-                    if (topics.add(ref.getName())) {
+                    if (refSet.add(ref.getName())) {
                         publisher.<Map<String, Object>>getTopic(ref.getName())
                                 .addMessageListener(new MessageListener<>() {
-//                                    @Override
-//                                    public String getName() {
-//                                        return "CrossProduct ref for table '%s' column '%s'"
-//                                                .formatted(table.getName(), ref.getColumn());
-//                                    }
-
                                     @Override
                                     public void onMessage(Message<Map<String, Object>> message) {
                                         fifoQueue.offer(message.getTopic(), message.getPayload());
@@ -71,6 +61,45 @@ public class CrossProductChunkProducer extends AsyncChunkProducer {
                                 });
                     }
                 });
+    }
+
+    private List<List<Map<String, Object>>> drainUpStreamTopics() {
+        Map<String, List<Map<String, Object>>> columnValueMap = new LinkedHashMap<>();
+
+        table.filterColumns(Table.WITH_EACH)
+                .stream()
+                .map(Column::getEach)
+                .forEach(each -> {
+                    if (!columnValueMap.containsKey(each.getName())) {
+                        List<Map<String, Object>> rows = new LinkedList<>();
+
+                        Map<String, Object> values = fifoQueue.take(each.getName());
+                        while (!values.isEmpty()) {
+                            rows.add(values);
+                            values = fifoQueue.take(each.getName());
+                        }
+
+                        columnValueMap.put(each.getName(), rows);
+                    }
+                });
+
+        return columnValueMap
+                .keySet()
+                .stream()
+                .map(columnValueMap::get)
+                .collect(Collectors.toList());
+    }
+
+    private Map<String, Integer> resolveColumnIndexes() {
+        Map<String, Integer> columnIndexes = new HashMap<>();
+        AtomicInteger idx = new AtomicInteger();
+
+        table.filterColumns(Table.WITH_EACH)
+                .stream()
+                .map(Column::getEach)
+                .forEach(each -> columnIndexes.put(each.getName(), idx.getAndIncrement()));
+
+        return columnIndexes;
     }
 
     @Override
@@ -90,7 +119,11 @@ public class CrossProductChunkProducer extends AsyncChunkProducer {
         }
 
         Map<String, Integer> columnIndexes = resolveColumnIndexes();
+
         Topic<Map<String, Object>> topic = publisher.getTopic(table.getName());
+        if (!topic.hasMessageListeners()) {
+            topic = new Topic.Empty<>();
+        }
 
         // Create cartesian product from columns sets
         Stream<List<Map<String, Object>>> cartesianProduct = Cartesian.cartesianProductStream(columnSets);
@@ -129,7 +162,7 @@ public class CrossProductChunkProducer extends AsyncChunkProducer {
                         orderedValues.put(column.getName(), v);
                     });
 
-            topic.publishAsync(orderedValues);
+            topic.publish(orderedValues);
 
             Map<String, Object> copy = filterIncludes(orderedValues);
 
@@ -138,50 +171,6 @@ public class CrossProductChunkProducer extends AsyncChunkProducer {
             }
         }
 
-        topic.publishAsync(Map.of()); // poison pill
-    }
-
-    private List<List<Map<String, Object>>> drainUpStreamTopics() {
-        Map<String, List<Map<String, Object>>> columnValueMap = new HashMap<>();
-
-        logger.debug("Draining queues for '%s'".formatted(table.getName()));
-
-        table.filterColumns(Table.WITH_EACH)
-                .stream()
-                .map(Column::getEach)
-                .forEach(each -> {
-                    if (!columnValueMap.containsKey(each.getName())) {
-                        List<Map<String, Object>> rows = new LinkedList<>();
-
-                        Map<String, Object> values = fifoQueue.take(each.getName());
-                        while (!values.isEmpty()) {
-                            rows.add(values);
-                            values = fifoQueue.take(each.getName());
-                        }
-
-                        columnValueMap.put(each.getName(), rows);
-                    }
-                });
-
-        List<List<Map<String, Object>>> columnSets = new ArrayList<>();
-
-        table.filterColumns(Table.WITH_EACH)
-                .stream()
-                .map(Column::getEach)
-                .forEach(each -> columnSets.add(columnValueMap.get(each.getName())));
-
-        return columnSets;
-    }
-
-    private Map<String, Integer> resolveColumnIndexes() {
-        Map<String, Integer> columnIndexes = new HashMap<>();
-        AtomicInteger idx = new AtomicInteger();
-
-        table.filterColumns(Table.WITH_EACH)
-                .stream()
-                .map(Column::getEach)
-                .forEach(each -> columnIndexes.put(each.getName(), idx.getAndIncrement()));
-
-        return columnIndexes;
+        topic.publish(Map.of()); // poison pill
     }
 }

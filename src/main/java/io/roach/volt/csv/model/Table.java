@@ -32,10 +32,6 @@ public class Table {
     @Pattern(regexp = "^[+-]?([0-9]+\\.?[0-9]*|\\.[0-9]+)\\s?([kKmMgG]+)?")
     private String count;
 
-    @Min(1)
-    @Max(512)
-    private int files = 1;
-
     @NotEmpty
     private List<Column> columns = new ArrayList<>();
 
@@ -64,16 +60,7 @@ public class Table {
 
     @JsonIgnore
     public int getFinalCount() {
-        Assert.isTrue(files >= 1, "files must be >= 1");
-        return count != null ? Multiplier.parseInt(count) / files : 0;
-    }
-
-    public int getFiles() {
-        return files;
-    }
-
-    public void setFiles(int files) {
-        this.files = files;
+        return count != null ? Multiplier.parseInt(count) : 0;
     }
 
     public void setCount(String count) {
