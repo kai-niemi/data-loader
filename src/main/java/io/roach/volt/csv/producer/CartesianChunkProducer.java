@@ -19,9 +19,9 @@ import io.roach.volt.csv.model.Each;
 import io.roach.volt.csv.model.Ref;
 import io.roach.volt.csv.model.Table;
 import io.roach.volt.util.Cartesian;
-import io.roach.volt.util.pubsub.Message;
-import io.roach.volt.util.pubsub.MessageListener;
-import io.roach.volt.util.pubsub.Topic;
+import io.roach.volt.pubsub.Message;
+import io.roach.volt.pubsub.MessageListener;
+import io.roach.volt.pubsub.Topic;
 
 public class CartesianChunkProducer extends AsyncChunkProducer {
     private static final int WARN_THRESHOLD = 10_000_000;
@@ -39,27 +39,26 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                                 .addMessageListener(new MessageListener<>() {
                                     @Override
                                     public void onMessage(Message<Map<String, Object>> message) {
-                                        fifoQueue.put(message.getTopic(), message.getPayload());
+                                        if (message.isPoisonPill()) {
+                                            fifoQueue.put(each.getName(), Map.of());
+                                        } else {
+                                            fifoQueue.put(each.getName(), message.getPayload());
+                                        }
                                     }
                                 });
                     }
                 });
 
-        Set<String> refSet = new HashSet<>();
-
         table.filterColumns(Table.WITH_REF)
                 .stream()
                 .map(Column::getRef)
                 .forEach(ref -> {
-                    if (refSet.add(ref.getName())) {
-                        publisher.<Map<String, Object>>getTopic(ref.getName())
-                                .addMessageListener(new MessageListener<>() {
-                                    @Override
-                                    public void onMessage(Message<Map<String, Object>> message) {
-                                        fifoQueue.offer(message.getTopic(), message.getPayload());
-                                    }
-                                });
-                    }
+                    publisher.<Map<String, Object>>getTopic(ref.getName())
+                            .addMessageListener(message -> {
+                                if (!message.isPoisonPill()) {
+                                    fifoQueue.offer(ref.getName(), message.getPayload());
+                                }
+                            });
                 });
     }
 
@@ -138,31 +137,34 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
 
             Map<String, Object> orderedValues = new LinkedHashMap<>();
 
-            table.filterColumns(column -> true)
-                    .forEach(column -> {
-                        Object v;
+            for (Column c : table.filterColumns(column -> true)) {
+                Object v;
 
-                        Each each = column.getEach();
-                        if (each != null) {
-                            Assert.isTrue(columnIndexes.containsKey(each.getName()),
-                                    "Expected each: " + each.getName());
-                            v = productMap.get(columnIndexes.get(each.getName())).get(each.getColumn());
+                Each each = c.getEach();
+                if (each != null) {
+                    Assert.isTrue(columnIndexes.containsKey(each.getName()),
+                            "Expected each: " + each.getName());
+                    v = productMap.get(columnIndexes.get(each.getName())).get(each.getColumn());
+                } else {
+                    Ref ref = c.getRef();
+                    if (ref != null) {
+                        if (columnIndexes.containsKey(ref.getName())) {
+                            v = productMap.get(columnIndexes.get(ref.getName())).get(ref.getColumn());
                         } else {
-                            Ref ref = column.getRef();
-                            if (ref != null) {
-                                if (columnIndexes.containsKey(ref.getName())) {
-                                    v = productMap.get(columnIndexes.get(ref.getName())).get(ref.getColumn());
-                                } else {
-                                    v = fifoQueue.selectRandom(ref.getName());
-                                }
-                            } else {
-                                v = columnGenerators.get(column).nextValue();
-                            }
+                            v = fifoQueue.peekRandom(ref.getName());
                         }
-                        orderedValues.put(column.getName(), v);
-                    });
+                        if (v == null) {
+                            logger.info("Poison pill for ref column '%s' - breaking".formatted(ref.getName()));
+                            break;
+                        }
+                    } else {
+                        v = columnGenerators.get(c).nextValue();
+                    }
+                }
+                orderedValues.put(c.getName(), v);
+            }
 
-            topic.publish(orderedValues);
+            topic.publish(Message.of(orderedValues));
 
             Map<String, Object> copy = filterIncludes(orderedValues);
 
@@ -171,6 +173,6 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
             }
         }
 
-        topic.publish(Map.of()); // poison pill
+        topic.publish(Message.poisonPill()); // poison pill
     }
 }

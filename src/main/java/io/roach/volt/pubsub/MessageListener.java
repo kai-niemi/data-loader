@@ -1,4 +1,4 @@
-package io.roach.volt.util.pubsub;
+package io.roach.volt.pubsub;
 
 @FunctionalInterface
 public interface MessageListener<E> {

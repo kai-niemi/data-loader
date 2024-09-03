@@ -9,7 +9,7 @@ import java.time.Instant;
 /**
  * Event published with CSV progress details.
  */
-public class ProducerProgressEvent extends AbstractEvent {
+public class ProducerProgressEvent extends AbstractTableEvent {
     public ProducerProgressEvent(Table table, Path path) {
         super(table, path);
     }

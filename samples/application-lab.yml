@@ -9,6 +9,23 @@ model:
     prefix: "http://${local-ip}:8090/"
   outputPath: ".output"
   tables:
+    - name: "payment_method"
+      count: "10"
+      columns:
+        - name: "payment_type"
+          expression: "randomString(15)"
+        - name: "id"
+          gen:
+            type: "sequence"
+            from: "1"
+            step: 1
+        - name: "number"
+          expression: "randomString(255)"
+        - name: "retailer"
+          expression: "randomString(255)"
+        - name: "voucher_code"
+          expression: "randomString(25)"
+
     - name: "orders"
       count: "100"
       columns:
@@ -33,104 +50,10 @@ model:
           expression: "randomString(255)"
         - name: "version"
           expression: "randomInt()"
-
-    - name: "product"
-      count: "10"
-      files: "1"
-      columns:
-        - name: "id"
-          gen:
-            type: "sequence"
-            from: "1"
-            step: 1
-        - name: "created_by"
-          expression: "randomString(24)"
-        - name: "created_time"
-          expression: "randomDateTime()"
-        - name: "last_modified_by"
-          expression: "randomString(24)"
-        - name: "last_modified_time"
-          expression: "randomDateTime()"
-        - name: "description"
-          expression: "randomString(512)"
-        - name: "name"
-          expression: "randomString(128)"
-        - name: "sku_code"
-          expression: "randomString(128)"
-        - name: "attributes"
-          expression: "randomJson(1,1)"
-        - name: "version"
-          expression: "randomInt()"
-      options:
-        delimiter: ";"
-        skip: "1"
-        allow_quoted_null: "null"
-        fields_enclosed_by: "(empty)"
-
-    - name: "attachment"
-      count: "100"
-      files: "1"
-      columns:
-        - name: "id"
-          gen:
-            type: "sequence"
-            from: "1"
-            step: 1
-        - name: "binary_file"
-          expression: "toBase64(randomBytes(512))"
-        - name: "checksum"
-          expression: "randomLong()"
-        - name: "content_type"
-          expression: "randomString(15)"
-        - name: "created_time"
-          expression: "randomDateTime()"
-        - name: "description"
-          expression: "randomString(256)"
-        - name: "name"
-          expression: "randomString(64)"
-        - name: "size"
-          expression: "randomLong()"
-
-    - name: "product_attachment"
-      files: "1"
-      columns:
-        - name: "product_id"
-          each:
-            name: "product"
+        - name: "payment_method_id"
+          ref:
+            name: "payment_method"
             column: "id"
-            multiplier: 1
-        - name: "attachment_id"
-          each:
-            name: "attachment"
-            column: "id"
-            multiplier: 1
-        - name: "rowid"
-          gen:
-            type: "sequence"
-            from: "1"
-            step: 1
-
-    - name: "product_variation"
-      files: "1"
-      columns:
-        - name: "id"
-          gen:
-            type: "sequence"
-            from: "1"
-            step: 1
-        - name: "amount"
-          expression: "randomBigDecimal(0,100000000000000000,2)"
-        - name: "currency"
-          expression: "randomString(255)"
-        - name: "sku_code"
-          expression: "randomString(24)"
-        - name: "version"
-          expression: "randomInt()"
-        - name: "product_id"
-          each:
-            name: "product"
-            column: "id"
-            multiplier: 1
 
     - name: "order_item"
       columns:
@@ -138,14 +61,14 @@ model:
           each:
             name: "orders"
             column: "id"
-            multiplier: 1
+            multiplier: 2
+        - name: "item_pos"
+          gen:
+            type: "sequence"
+            from: "1"
+            step: 1
         - name: "load_type"
           expression: "randomString(16)"
-        - name: "product_variation_id"
-          each:
-            name: "product_variation"
-            column: "id"
-            multiplier: 1
         - name: "quantity"
           expression: "randomInt()"
         - name: "status"
@@ -156,23 +79,4 @@ model:
           expression: "randomString(255)"
         - name: "weight_kg"
           expression: "randomDouble()"
-        - name: "item_pos"
-          gen:
-            type: "unordered"
-            batchSize: 512
 
-    - name: "product_tag"
-      files: "1"
-      columns:
-        - name: "product_id"
-          each:
-            name: "product"
-            column: "id"
-            multiplier: 1
-        - name: "name"
-          expression: "randomString(64)"
-        - name: "rowid"
-          gen:
-            type: "sequence"
-            from: "1"
-            step: 1

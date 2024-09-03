@@ -21,6 +21,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.shell.boot.ShellRunnerAutoConfiguration;
 
 import io.roach.volt.Application;
+import io.roach.volt.pubsub.Message;
+import io.roach.volt.pubsub.Publisher;
+import io.roach.volt.pubsub.Topic;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ConfigurationPropertiesScan(basePackageClasses = Application.class)
@@ -32,7 +35,7 @@ import io.roach.volt.Application;
 })
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Tag("interation-test")
+@Tag("integration-test")
 public class PublisherTest {
     @Autowired
     private Publisher publisher;
@@ -59,7 +62,7 @@ public class PublisherTest {
         });
 
         IntStream.rangeClosed(1, 10).forEach(value -> {
-            topic.publish("hello " + value);
+            topic.publish(Message.of("hello " + value));
         });
     }
 
@@ -78,7 +81,7 @@ public class PublisherTest {
         });
 
         IntStream.rangeClosed(1, 10_000).forEach(value -> {
-            topic.publish(value);
+            topic.publish(Message.of(value));
         });
 
         try {

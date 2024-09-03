@@ -1,7 +1,7 @@
 package io.roach.volt.csv.event;
 
 /**
- * Event published when all CSV producers should cancel further processing.
+ * Event published to request graceful cancellation.
  */
 public class CancellationEvent {
 }

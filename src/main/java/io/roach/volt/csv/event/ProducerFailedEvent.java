@@ -6,9 +6,9 @@ import java.nio.file.Path;
 
 /**
  * Event published when a CSV producer for a table failed to
- * start or finish normally.
+ * start or finished ungracefully.
  */
-public class ProducerFailedEvent extends AbstractEvent {
+public class ProducerFailedEvent extends AbstractTableEvent {
     private Throwable cause;
 
     public ProducerFailedEvent(Table table, Path path) {

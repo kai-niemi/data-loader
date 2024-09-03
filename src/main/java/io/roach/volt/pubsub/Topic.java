@@ -1,4 +1,4 @@
-package io.roach.volt.util.pubsub;
+package io.roach.volt.pubsub;
 
 public interface Topic<E> {
     class Empty<E> implements Topic<E> {
@@ -13,7 +13,7 @@ public interface Topic<E> {
         }
 
         @Override
-        public void publish(E message) {
+        public void publish(Message<E> message) {
 
         }
     }
@@ -22,5 +22,5 @@ public interface Topic<E> {
 
     boolean hasMessageListeners();
 
-    void publish(E message);
+    void publish(Message<E> message);
 }

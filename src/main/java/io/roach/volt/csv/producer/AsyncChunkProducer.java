@@ -21,7 +21,7 @@ import io.roach.volt.expression.ExpressionRegistryBuilder;
 import io.roach.volt.expression.FunctionDef;
 import io.roach.volt.util.concurrent.CircularFifoQueue;
 import io.roach.volt.util.concurrent.FifoQueue;
-import io.roach.volt.util.pubsub.Publisher;
+import io.roach.volt.pubsub.Publisher;
 
 public abstract class AsyncChunkProducer implements ChunkProducer<String, Object> {
     protected static final Predicate<Column> COLUMN_INCLUDE_PREDICATE

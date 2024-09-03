@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,12 +15,12 @@ import org.springframework.stereotype.Component;
 
 import io.roach.volt.csv.event.AbstractEventPublisher;
 import io.roach.volt.csv.event.CompletionEvent;
-import io.roach.volt.csv.event.ExitEvent;
+import io.roach.volt.csv.event.GenerateEvent;
 import io.roach.volt.csv.event.GenericEvent;
+import io.roach.volt.csv.event.ProducerCancelledEvent;
+import io.roach.volt.csv.event.ProducerCompletedEvent;
 import io.roach.volt.csv.event.ProducerFailedEvent;
-import io.roach.volt.csv.event.ProducerFinishedEvent;
 import io.roach.volt.csv.event.ProducerProgressEvent;
-import io.roach.volt.csv.event.ProducerStartEvent;
 import io.roach.volt.csv.event.ProducerStartedEvent;
 import io.roach.volt.csv.model.Table;
 import io.roach.volt.shell.support.AnsiConsole;
@@ -33,19 +32,16 @@ public class ProducerLifecycleListener extends AbstractEventPublisher {
 
     private final List<Table> activeTables = Collections.synchronizedList(new ArrayList<>());
 
-    private final AtomicBoolean completed = new AtomicBoolean();
-
-    private final AtomicBoolean quitOnCompletion = new AtomicBoolean();
-
-    private final Map<Table, List<Path>> paths = Collections.synchronizedMap(new LinkedHashMap<>());
+    private final Map<Table, List<Path>> completedTables = Collections.synchronizedMap(new LinkedHashMap<>());
 
     @Autowired
     private AnsiConsole console;
 
     @EventListener
-    public void onStartEvent(GenericEvent<ProducerStartEvent> event) {
-        quitOnCompletion.set(event.getTarget().isQuitOnCompletion());
-        completed.set(false);
+    public void onPreGenerateEvent(GenericEvent<GenerateEvent> event) {
+        // Clear out
+        activeTables.clear();
+        completedTables.clear();
     }
 
     @EventListener
@@ -54,13 +50,13 @@ public class ProducerLifecycleListener extends AbstractEventPublisher {
 
         activeTables.add(startedEvent.getTable());
 
-        if (startedEvent.isBounded()) {
-            logger.info("Started generating '%s': %,d rows using '%s'".formatted(
+        if (startedEvent.isBoundedCount()) {
+            logger.info("Started producing '%s': %,d rows using '%s'".formatted(
                     startedEvent.getPath(),
                     startedEvent.getTable().getFinalCount(),
                     startedEvent.getProducerInfo()));
         } else {
-            logger.info("Started generating '%s': ∞ rows using '%s'".formatted(
+            logger.info("Started producing '%s': ∞ rows using '%s'".formatted(
                     startedEvent.getPath(),
                     startedEvent.getProducerInfo()));
         }
@@ -68,69 +64,55 @@ public class ProducerLifecycleListener extends AbstractEventPublisher {
 
     @EventListener
     public void onCompletionEvent(GenericEvent<CompletionEvent> event) {
-        logger.info("Finished generating all %d file(s)"
+        logger.info("Completed producing %d file(s) - ready for work"
                 .formatted(event.getTarget().getPaths().size()));
     }
 
     @EventListener
     public void onProgressEvent(GenericEvent<ProducerProgressEvent> event) {
-        ProducerProgressEvent progressEvent = event.getTarget();
-
-        if (progressEvent.getTotal() > 0) {
+        ProducerProgressEvent pe = event.getTarget();
+        if (pe.getTotal() > 0) {
             console.progressBar(
-                    progressEvent.getPosition(),
-                    progressEvent.getTotal(),
-                    progressEvent.getLabel(),
-                    progressEvent.getRequestsPerSec(),
-                    progressEvent.remainingMillis());
+                    pe.getPosition(),
+                    pe.getTotal(),
+                    pe.getLabel(),
+                    pe.getRequestsPerSec(),
+                    pe.remainingMillis());
         }
     }
 
     @EventListener
-    public void onFinishedEvent(GenericEvent<ProducerFinishedEvent> event) {
-        paths.computeIfAbsent(event.getTarget().getTable(), s -> new ArrayList<>())
+    public void onCompletedEvent(GenericEvent<ProducerCompletedEvent> event) {
+        completedTables.computeIfAbsent(event.getTarget().getTable(), s -> new ArrayList<>())
                 .add(event.getTarget().getPath());
 
         activeTables.remove(event.getTarget().getTable());
 
-        if (event.getTarget().isCancelled()) {
-            logger.warn("Cancelled generating '%s': %,d rows in %s (%.0f/s avg) - %d file(s) in queue"
-                    .formatted(
-                            event.getTarget().getPath(),
-                            event.getTarget().getRows(),
-                            event.getTarget().getDuration(),
-                            event.getTarget().calcRequestsPerSec(),
-                            activeTables.size()));
-        } else {
-            logger.info("Finished generating '%s': %,d rows in %s (%.0f/s avg) (%s) - %d file(s) in queue"
-                    .formatted(
-                            event.getTarget().getPath(),
-                            event.getTarget().getRows(),
-                            event.getTarget().getDuration(),
-                            event.getTarget().calcRequestsPerSec(),
-                            ByteUtils.byteCountToDisplaySize(
-                                    event.getTarget().getPath().toFile().length()),
-                            activeTables.size()));
-        }
+        logger.info("Completed producing '%s': %,d rows in %s (%.0f/s avg) (%s) - %d in queue"
+                .formatted(
+                        event.getTarget().getPath(),
+                        event.getTarget().getRows(),
+                        event.getTarget().getDuration(),
+                        event.getTarget().calcRequestsPerSec(),
+                        ByteUtils.byteCountToDisplaySize(
+                                event.getTarget().getPath().toFile().length()),
+                        activeTables.size()));
 
-        if (activeTables.isEmpty() && !completed.get()) {
-            completed.set(true);
-
-            if (!event.getTarget().isCancelled()) {
-                publishEvent(new CompletionEvent(paths));
-            }
-
-            paths.clear();
-
-            if (quitOnCompletion.get()) {
-                publishEvent(new ExitEvent(0));
-            }
+        if (activeTables.isEmpty()) {
+            publishEvent(new CompletionEvent(Map.copyOf(completedTables)));
+            completedTables.clear();
         }
     }
 
     @EventListener
+    public void onCancelledEvent(GenericEvent<ProducerCancelledEvent> event) {
+        logger.warn("Cancelled producing '%s'"
+                .formatted(event.getTarget().getTable()));
+    }
+
+    @EventListener
     public void onFailedEvent(GenericEvent<ProducerFailedEvent> event) {
-        logger.error("Failed generating '%s': %s"
+        logger.error("Failed to produce '%s': %s"
                 .formatted(event.getTarget().getTable(), event.getTarget().getCause()));
     }
 }

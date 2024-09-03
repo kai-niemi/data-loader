@@ -8,11 +8,18 @@ import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.Each;
 import io.roach.volt.csv.model.Ref;
 import io.roach.volt.csv.model.Table;
-import io.roach.volt.util.pubsub.Message;
-import io.roach.volt.util.pubsub.MessageListener;
-import io.roach.volt.util.pubsub.Topic;
+import io.roach.volt.pubsub.Message;
+import io.roach.volt.pubsub.Topic;
 
 public class DownstreamChunkProducer extends AsyncChunkProducer {
+    private Each findUpstreamEach() {
+        return table.filterColumns(Table.WITH_EACH)
+                .stream()
+                .map(Column::getEach)
+                .findFirst()
+                .orElseThrow();
+    }
+
     @Override
     protected void doInitialize() {
         Each each = findUpstreamEach();
@@ -21,14 +28,11 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
                 .formatted(table.getName(), each.getName()));
 
         publisher.<Map<String, Object>>getTopic(each.getName())
-                .addMessageListener(new MessageListener<>() {
-                    @Override
-                    public void onMessage(Message<Map<String, Object>> message) {
-                        if (message.getPayload().isEmpty()) {
-                            logger.debug("Downstream producer '%s' received poison pill for '%s'"
-                                    .formatted(table.getName(), each.getName()));
-                        }
-                        fifoQueue.put(message.getTopic(), message.getPayload());
+                .addMessageListener(message -> {
+                    if (message.isPoisonPill()) {
+                        fifoQueue.put(each.getName(), Map.of());
+                    } else {
+                        fifoQueue.put(each.getName(), message.getPayload());
                     }
                 });
 
@@ -37,21 +41,12 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
                 .map(Column::getRef)
                 .forEach(ref -> {
                     publisher.<Map<String, Object>>getTopic(ref.getName())
-                            .addMessageListener(new MessageListener<>() {
-                                @Override
-                                public void onMessage(Message<Map<String, Object>> message) {
-                                    fifoQueue.offer(message.getTopic(), message.getPayload());
+                            .addMessageListener(message -> {
+                                if (!message.isPoisonPill()) {
+                                    fifoQueue.offer(ref.getName(), message.getPayload());
                                 }
                             });
                 });
-    }
-
-    private Each findUpstreamEach() {
-        return table.filterColumns(Table.WITH_EACH)
-                .stream()
-                .map(Column::getEach)
-                .findFirst()
-                .orElseThrow();
     }
 
     @Override
@@ -67,6 +62,7 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
 
         // Wait for upstream values or poison pill to cancel (empty collection)
         Map<String, Object> upstreamValues = fifoQueue.take(each.getName());
+        loop:
         while (!upstreamValues.isEmpty()) {
             // Repeat if needed
             for (int n = 0; n < each.getMultiplier(); n++) {
@@ -83,9 +79,13 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
                             if (ref.getName().equals(each.getName())) {
                                 v = upstreamValues.get(ref.getColumn());
                             } else {
-                                Map<String, Object> values =
-                                        refMap.computeIfAbsent(ref.getName(), fifoQueue::selectRandom);
+                                Map<String, Object> values
+                                        = refMap.computeIfAbsent(ref.getName(), fifoQueue::peekRandom);
                                 v = values.get(ref.getColumn());
+                                if (values.isEmpty()) {
+                                    logger.info("Poison pill for ref column '%s' - breaking".formatted(ref.getName()));
+                                    break loop;
+                                }
                             }
                         } else {
                             v = columnGenerators.get(col).nextValue();
@@ -94,7 +94,7 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
                     orderedMap.put(col.getName(), v);
                 }
 
-                topic.publish(orderedMap);
+                topic.publish(Message.of(orderedMap));
 
                 Map<String, Object> copy = filterIncludes(orderedMap);
 
@@ -106,7 +106,7 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
             upstreamValues = fifoQueue.take(each.getName());
         }
 
-        topic.publish(Map.of()); // poison pill
+        topic.publish(Message.poisonPill()); // poison pill
     }
 }
 

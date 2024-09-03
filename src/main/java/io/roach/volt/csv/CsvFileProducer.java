@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -26,12 +27,13 @@ import org.springframework.stereotype.Component;
 
 import io.roach.volt.csv.event.AbstractEventPublisher;
 import io.roach.volt.csv.event.CancellationEvent;
-import io.roach.volt.csv.event.CompletionEvent;
+import io.roach.volt.csv.event.GenerateEvent;
 import io.roach.volt.csv.event.GenericEvent;
+import io.roach.volt.csv.event.ProducerCancelledEvent;
+import io.roach.volt.csv.event.ProducerCompletedEvent;
 import io.roach.volt.csv.event.ProducerFailedEvent;
-import io.roach.volt.csv.event.ProducerFinishedEvent;
 import io.roach.volt.csv.event.ProducerProgressEvent;
-import io.roach.volt.csv.event.ProducerStartEvent;
+import io.roach.volt.csv.event.ProducerScheduledEvent;
 import io.roach.volt.csv.event.ProducerStartedEvent;
 import io.roach.volt.csv.model.ApplicationModel;
 import io.roach.volt.csv.model.Column;
@@ -41,13 +43,13 @@ import io.roach.volt.csv.producer.AsyncChunkProducer;
 import io.roach.volt.csv.producer.AsyncChunkProducers;
 import io.roach.volt.csv.stream.CsvStreamWriter;
 import io.roach.volt.csv.stream.CsvStreamWriterBuilder;
-import io.roach.volt.util.pubsub.Publisher;
+import io.roach.volt.pubsub.Publisher;
 
 @Component
 public class CsvFileProducer extends AbstractEventPublisher {
-    private final AtomicBoolean cancellationRequested = new AtomicBoolean();
-
     private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    private final AtomicBoolean cancellationRequested = new AtomicBoolean();
 
     @Autowired
     private ApplicationModel applicationModel;
@@ -59,24 +61,27 @@ public class CsvFileProducer extends AbstractEventPublisher {
     private Publisher publisher;
 
     @EventListener
-    public void onCancelEvent(GenericEvent<CancellationEvent> event) {
+    public void onCancellationEvent(GenericEvent<CancellationEvent> event) {
+        logger.info("Cancellation request received");
         cancellationRequested.set(true);
     }
 
     @EventListener
-    public void onCompletionEvent(GenericEvent<CompletionEvent> event) {
+    public void onGenerateEvent(GenericEvent<GenerateEvent> event) {
         cancellationRequested.set(false);
     }
 
     @Async
     @EventListener
-    public CompletableFuture<Integer> onStartEvent(GenericEvent<ProducerStartEvent> event) {
+    public CompletableFuture<Integer> onScheduledEvent(GenericEvent<ProducerScheduledEvent> event) {
         if (cancellationRequested.get()) {
+            logger.warn("Cancellation has been requested - skipping");
             return CompletableFuture.completedFuture(0);
         }
 
-        final Path path = event.getTarget().getPath();
-        final Table table = event.getTarget().getTable();
+        final ProducerScheduledEvent scheduledEvent = event.getTarget();
+        final Path path = scheduledEvent.getPath();
+        final Table table = scheduledEvent.getTable();
         final AtomicInteger currentRow = new AtomicInteger();
         final Instant startTime = Instant.now();
         final AtomicReference<Instant> lastTick = new AtomicReference<>(startTime);
@@ -95,22 +100,26 @@ public class CsvFileProducer extends AbstractEventPublisher {
         chunkProducer.setPublisher(publisher);
         chunkProducer.setCurrentRow(currentRow);
         chunkProducer.setTable(table);
+
+        // Allow all producers to initialize before any starts producing (via latch)
         chunkProducer.initialize();
 
         try {
-            event.getTarget().getStartLatch().countDown();
-            logger.debug("Waiting for latch");
-            event.getTarget().getStartLatch().await();
+            CountDownLatch latch = scheduledEvent.getStartLatch();
+            latch.countDown();
+            logger.info("Counting down start latch - remaining %d".formatted(latch.getCount()));
+            latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
 
-        try (CsvStreamWriter<Map<String, Object>> writer = createCsvStreamWriter(table, path)) {
-            publishEvent(new ProducerStartedEvent(table, path, chunkProducer.getClass().getSimpleName()));
+        publishEvent(new ProducerStartedEvent(table, path, chunkProducer.getClass().getSimpleName()));
 
+        try (CsvStreamWriter<Map<String, Object>> writer = createCsvStreamWriter(table, path)) {
             chunkProducer.produceChunks((values, rowEstimate) -> {
                 if (cancellationRequested.get()) {
+                    logger.warn("Cancellation has been requested - aborting prematurely");
                     return false;
                 }
 
@@ -138,14 +147,17 @@ public class CsvFileProducer extends AbstractEventPublisher {
             failCause = e;
             return CompletableFuture.failedFuture(e);
         } finally {
-            publishEvent(new ProducerFinishedEvent(table, path)
-                    .setDuration(Duration.between(startTime, Instant.now()))
-                    .setRows(currentRow.get())
-                    .setCancelled(cancellationRequested.get())
-            );
-
             if (failCause != null) {
-                publishEvent(new ProducerFailedEvent(table, path).setCause(failCause));
+                publishEvent(new ProducerFailedEvent(table, path)
+                        .setCause(failCause)
+                );
+            } else if (cancellationRequested.get()) {
+                publishEvent(new ProducerCancelledEvent(table, path));
+            } else {
+                publishEvent(new ProducerCompletedEvent(table, path)
+                        .setDuration(Duration.between(startTime, Instant.now()))
+                        .setRows(currentRow.get())
+                );
             }
         }
     }

@@ -2,8 +2,7 @@ model:
   outputPath: ".output"
   tables:
     - name: "account"
-      count: "10k"
-      files: 5
+      count: "1000k"
       columns:
         - name: "id"
           gen:

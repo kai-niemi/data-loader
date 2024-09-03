@@ -5,10 +5,15 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +29,17 @@ import org.springframework.shell.standard.ShellOption;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.roach.volt.csv.ModelConfigException;
 import io.roach.volt.csv.TableConfigException;
 import io.roach.volt.csv.event.AbstractEventPublisher;
 import io.roach.volt.csv.event.CancellationEvent;
 import io.roach.volt.csv.event.CompletionEvent;
+import io.roach.volt.csv.event.ExitEvent;
+import io.roach.volt.csv.event.GenerateEvent;
 import io.roach.volt.csv.event.GenericEvent;
-import io.roach.volt.csv.event.ProducerFinishedEvent;
-import io.roach.volt.csv.event.ProducerStartEvent;
+import io.roach.volt.csv.event.ProducerCancelledEvent;
+import io.roach.volt.csv.event.ProducerCompletedEvent;
+import io.roach.volt.csv.event.ProducerScheduledEvent;
 import io.roach.volt.csv.event.ProducerStartedEvent;
 import io.roach.volt.csv.model.ApplicationModel;
 import io.roach.volt.csv.model.Root;
@@ -54,7 +63,10 @@ public class CSV extends AbstractEventPublisher {
     @Qualifier("yamlObjectMapper")
     private ObjectMapper yamlObjectMapper;
 
-    private final List<Path> activeProducers = Collections.synchronizedList(new ArrayList<>());
+    private final AtomicBoolean quitOnCompletion = new AtomicBoolean();
+
+    private final List<Path> activeProducers
+            = Collections.synchronizedList(new ArrayList<>());
 
     public Availability ifNoActiveProducers() {
         return !activeProducers.isEmpty()
@@ -74,19 +86,21 @@ public class CSV extends AbstractEventPublisher {
     }
 
     @EventListener
-    public void onFinishedEvent(GenericEvent<ProducerFinishedEvent> event) {
+    public void onFinishedEvent(GenericEvent<ProducerCompletedEvent> event) {
+        activeProducers.remove(event.getTarget().getPath());
+    }
+
+    @EventListener
+    public void onCancelledEvent(GenericEvent<ProducerCancelledEvent> event) {
         activeProducers.remove(event.getTarget().getPath());
     }
 
     @EventListener
     public void onCompletionEvent(GenericEvent<CompletionEvent> event) {
         activeProducers.clear();
-    }
-
-    @ShellMethodAvailability("ifActiveProducers")
-    @ShellMethod(value = "Cancel all background operations", key = {"csv-cancel", "c"})
-    public void cancel() {
-        publishEvent(new CancellationEvent());
+        if (quitOnCompletion.get()) {
+            publishEvent(new ExitEvent(0));
+        }
     }
 
     @ShellMethod(value = "Show application model YAML", key = {"csv-show", "s"})
@@ -128,32 +142,52 @@ public class CSV extends AbstractEventPublisher {
         }
     }
 
+    @ShellMethodAvailability("ifActiveProducers")
+    @ShellMethod(value = "Cancel all background operations", key = {"csv-cancel", "c"})
+    public void cancel() {
+        publishEvent(new CancellationEvent());
+    }
+
     @ShellMethodAvailability("ifNoActiveProducers")
     @ShellMethod(value = "Generate CSV files from application model", key = {"csv-generate", "g"})
     public void generate(@ShellOption(help = "quit on completion", defaultValue = "false") boolean quit,
-                         @ShellOption(help = "file name suffix", defaultValue = "") String suffix) {
+                         @ShellOption(help = "disallow base path creation", defaultValue = "false") boolean skipCreateBasePath,
+                         @ShellOption(help = "file name prefix", defaultValue = "") String prefix,
+                         @ShellOption(help = "file name suffix", defaultValue = ".csv") String suffix) {
         validateModel();
 
         final Path basePath = Paths.get(applicationModel.getOutputPath());
 
         if (!Files.isDirectory(basePath)) {
             try {
-                logger.trace("Create output base path: %s".formatted(basePath));
-                Files.createDirectories(basePath);
+                if (skipCreateBasePath) {
+                    throw new ModelConfigException("Base path not found (or not a directory): " + basePath);
+                }
+                Set<PosixFilePermission> permissions
+                        = PosixFilePermissions.fromString("drwx-r-xr-x"); // 755
+                FileAttribute<Set<PosixFilePermission>> fileAttributes
+                        = PosixFilePermissions.asFileAttribute(permissions);
+                Files.createDirectories(basePath, fileAttributes);
+                logger.info("Created base path '%s' with permissions [%s]".formatted(basePath, fileAttributes));
             } catch (IOException e) {
                 throw new UncheckedIOException("Base path could not be created: " + basePath, e);
             }
         }
 
         if (!Files.isWritable(basePath)) {
-            throw new RuntimeException("Base path is not writable: " + basePath);
+            throw new ModelConfigException("Base path is not writable - check permissions: " + basePath);
         }
 
-        final CountDownLatch latch = new CountDownLatch(applicationModel.getTables().size());
+        publishEvent(new GenerateEvent());
 
-        for (Table table : applicationModel.getTables()) {
-            Path path = basePath.resolve("%s%s.csv".formatted(table.getName(), suffix));
-            publishEvent(new ProducerStartEvent(table, path, latch, quit));
-        }
+        // Have all producers initialize (setting up proper subscriptions etc) and then wait on a given go signal
+        final CountDownLatch startLatch = new CountDownLatch(applicationModel.getTables().size());
+
+        quitOnCompletion.set(quit);
+
+        applicationModel.getTables().forEach(table -> {
+            Path path = basePath.resolve("%s%s%s".formatted(prefix, table.getName(), suffix));
+            publishEvent(new ProducerScheduledEvent(table, path, startLatch));
+        });
     }
 }
