@@ -163,12 +163,8 @@ public class CSV extends AbstractEventPublisher {
                 if (skipCreateBasePath) {
                     throw new ModelConfigException("Base path not found (or not a directory): " + basePath);
                 }
-                Set<PosixFilePermission> permissions
-                        = PosixFilePermissions.fromString("drwx-r-xr-x"); // 755
-                FileAttribute<Set<PosixFilePermission>> fileAttributes
-                        = PosixFilePermissions.asFileAttribute(permissions);
-                Files.createDirectories(basePath, fileAttributes);
-                logger.info("Created base path '%s' with permissions [%s]".formatted(basePath, fileAttributes));
+                Files.createDirectories(basePath);
+                logger.info("Created base path '%s'".formatted(basePath));
             } catch (IOException e) {
                 throw new UncheckedIOException("Base path could not be created: " + basePath, e);
             }

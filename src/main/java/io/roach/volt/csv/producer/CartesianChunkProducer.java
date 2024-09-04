@@ -40,9 +40,9 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                                     @Override
                                     public void onMessage(Message<Map<String, Object>> message) {
                                         if (message.isPoisonPill()) {
-                                            fifoQueue.put(each.getName(), Map.of());
+                                            blockingFifoQueue.put(each.getName(), Map.of());
                                         } else {
-                                            fifoQueue.put(each.getName(), message.getPayload());
+                                            blockingFifoQueue.put(each.getName(), message.getPayload());
                                         }
                                     }
                                 });
@@ -56,7 +56,7 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                     publisher.<Map<String, Object>>getTopic(ref.getName())
                             .addMessageListener(message -> {
                                 if (!message.isPoisonPill()) {
-                                    fifoQueue.offer(ref.getName(), message.getPayload());
+                                    circularFifoQueue.put(ref.getName(), message.getPayload());
                                 }
                             });
                 });
@@ -72,10 +72,10 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                     if (!columnValueMap.containsKey(each.getName())) {
                         List<Map<String, Object>> rows = new LinkedList<>();
 
-                        Map<String, Object> values = fifoQueue.take(each.getName());
+                        Map<String, Object> values = blockingFifoQueue.take(each.getName());
                         while (!values.isEmpty()) {
                             rows.add(values);
-                            values = fifoQueue.take(each.getName());
+                            values = blockingFifoQueue.take(each.getName());
                         }
 
                         columnValueMap.put(each.getName(), rows);
@@ -151,11 +151,7 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                         if (columnIndexes.containsKey(ref.getName())) {
                             v = productMap.get(columnIndexes.get(ref.getName())).get(ref.getColumn());
                         } else {
-                            v = fifoQueue.peekRandom(ref.getName());
-                        }
-                        if (v == null) {
-                            logger.info("Poison pill for ref column '%s' - breaking".formatted(ref.getName()));
-                            break;
+                            v = circularFifoQueue.take(ref.getName());
                         }
                     } else {
                         v = columnGenerators.get(c).nextValue();

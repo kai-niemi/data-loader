@@ -30,9 +30,9 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
         publisher.<Map<String, Object>>getTopic(each.getName())
                 .addMessageListener(message -> {
                     if (message.isPoisonPill()) {
-                        fifoQueue.put(each.getName(), Map.of());
+                        blockingFifoQueue.put(each.getName(), Map.of());
                     } else {
-                        fifoQueue.put(each.getName(), message.getPayload());
+                        blockingFifoQueue.put(each.getName(), message.getPayload());
                     }
                 });
 
@@ -43,7 +43,7 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
                     publisher.<Map<String, Object>>getTopic(ref.getName())
                             .addMessageListener(message -> {
                                 if (!message.isPoisonPill()) {
-                                    fifoQueue.offer(ref.getName(), message.getPayload());
+                                    circularFifoQueue.put(ref.getName(), message.getPayload());
                                 }
                             });
                 });
@@ -61,7 +61,7 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
         final int rowEstimate = -1;
 
         // Wait for upstream values or poison pill to cancel (empty collection)
-        Map<String, Object> upstreamValues = fifoQueue.take(each.getName());
+        Map<String, Object> upstreamValues = blockingFifoQueue.take(each.getName());
         loop:
         while (!upstreamValues.isEmpty()) {
             // Repeat if needed
@@ -80,12 +80,8 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
                                 v = upstreamValues.get(ref.getColumn());
                             } else {
                                 Map<String, Object> values
-                                        = refMap.computeIfAbsent(ref.getName(), fifoQueue::peekRandom);
+                                        = refMap.computeIfAbsent(ref.getName(), circularFifoQueue::take);
                                 v = values.get(ref.getColumn());
-                                if (values.isEmpty()) {
-                                    logger.info("Poison pill for ref column '%s' - breaking".formatted(ref.getName()));
-                                    break loop;
-                                }
                             }
                         } else {
                             v = columnGenerators.get(col).nextValue();
@@ -103,7 +99,7 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
                 }
             }
 
-            upstreamValues = fifoQueue.take(each.getName());
+            upstreamValues = blockingFifoQueue.take(each.getName());
         }
 
         topic.publish(Message.poisonPill()); // poison pill

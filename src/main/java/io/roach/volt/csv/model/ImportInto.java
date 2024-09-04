@@ -1,24 +1,31 @@
 package io.roach.volt.csv.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotBlank;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import jakarta.validation.constraints.NotBlank;
+
 public class ImportInto {
     public static ImportInto createDefault() {
         ImportInto importInto = new ImportInto();
+        importInto.options.putAll(createDefaultOptions());
         importInto.setFile("import.sql");
         importInto.setPrefix("http://${local-ip}:8090/");
-        importInto.options.put(ImportOption.delimiter, ",");
-        importInto.options.put(ImportOption.skip, "1");
-        importInto.options.put(ImportOption.allow_quoted_null, "null");
-        importInto.options.put(ImportOption.fields_enclosed_by, "(empty)");
         return importInto;
+    }
+
+    public static Map<ImportOption, String> createDefaultOptions() {
+        Map<ImportOption, String> options = new LinkedHashMap<>();
+        options.put(ImportOption.delimiter, ",");
+        options.put(ImportOption.fields_enclosed_by, "(empty)");
+        options.put(ImportOption.skip, "1");
+        options.put(ImportOption.allow_quoted_null, "null");
+        return options;
     }
 
     @NotBlank

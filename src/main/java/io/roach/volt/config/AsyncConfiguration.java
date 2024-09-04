@@ -3,6 +3,7 @@ package io.roach.volt.config;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.aop.interceptor.SimpleAsyncUncaughtExceptionHandler;
@@ -43,7 +44,7 @@ public class AsyncConfiguration implements AsyncConfigurer {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(poolSize);
         executor.setMaxPoolSize(poolSize * 2);
-        executor.setThreadNamePrefix("volt-async-");
+        executor.setThreadNamePrefix("async-");
         executor.setStrictEarlyShutdown(true);
         executor.setWaitForTasksToCompleteOnShutdown(false);
         executor.setAcceptTasksAfterContextClose(false);

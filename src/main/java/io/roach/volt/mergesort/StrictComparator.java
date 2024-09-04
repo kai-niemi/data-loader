@@ -1,4 +1,4 @@
-package io.roach.volt.shell.mergesort;
+package io.roach.volt.mergesort;
 
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.batch.item.file.transform.FieldSet;

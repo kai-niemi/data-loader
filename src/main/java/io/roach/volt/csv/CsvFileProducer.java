@@ -165,12 +165,12 @@ public class CsvFileProducer extends AbstractEventPublisher {
     private CsvStreamWriter<Map<String, Object>> createCsvStreamWriter(Table table, Path path)
             throws IOException {
         String delimiter = table.getOptions()
-                .getOrDefault(ImportOption.delimiter, applicationModel.getImportInto()
-                        .getOptions().getOrDefault(ImportOption.delimiter, ","));
+                .getOrDefault(ImportOption.delimiter, applicationModel.getOptions()
+                        .getOrDefault(ImportOption.delimiter, ","));
 
         String quoteCharacter = table.getOptions()
-                .getOrDefault(ImportOption.fields_enclosed_by, applicationModel.getImportInto()
-                        .getOptions().getOrDefault(ImportOption.fields_enclosed_by, ""));
+                .getOrDefault(ImportOption.fields_enclosed_by, applicationModel.getOptions()
+                        .getOrDefault(ImportOption.fields_enclosed_by, ""));
         quoteCharacter = quoteCharacter.replace("(empty)", "");
 
         List<String> columnNames = table

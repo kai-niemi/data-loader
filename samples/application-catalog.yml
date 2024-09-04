@@ -1,4 +1,12 @@
 model:
+  import-into:
+    options:
+      delimiter: ","
+      skip: "1"
+      allow_quoted_null: "null"
+      fields_enclosed_by: '"'
+    file: "import.sql"
+    prefix: "http://${local-ip}:8090/"
   outputPath: ".output"
   tables:
     - name: "payment_method"
@@ -338,11 +346,3 @@ model:
             type: "sequence"
             from: "1"
             step: 1
-  import:
-    options:
-      delimiter: ","
-      skip: "1"
-      allow_quoted_null: "null"
-      fields_enclosed_by: '"'
-    file: "import.sql"
-    prefix: "http://${local-ip}:8090/"

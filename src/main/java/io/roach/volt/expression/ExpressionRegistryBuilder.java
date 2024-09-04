@@ -1,22 +1,25 @@
 package io.roach.volt.expression;
 
-import io.roach.volt.util.Money;
-import io.roach.volt.util.Networking;
-import io.roach.volt.util.RandomData;
-import io.roach.volt.util.wgs.Latitude;
-import io.roach.volt.util.wgs.Longitude;
-import org.springframework.util.StringUtils;
-
-import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+
+import javax.sql.DataSource;
+
+import org.springframework.util.StringUtils;
+
+import io.roach.volt.util.Money;
+import io.roach.volt.util.Networking;
+import io.roach.volt.util.RandomData;
+import io.roach.volt.util.wgs.Latitude;
+import io.roach.volt.util.wgs.Longitude;
 
 public final class ExpressionRegistryBuilder {
     private ExpressionRegistryBuilder() {
@@ -394,7 +397,6 @@ public final class ExpressionRegistryBuilder {
                     return RandomData.randomJson(arg1.intValue(), arg2.intValue());
                 })
                 .build());
-
         registry.addFunction(FunctionDef.builder()
                 .withCategory("random")
                 .withId("selectRandom")
@@ -402,6 +404,14 @@ public final class ExpressionRegistryBuilder {
                 .withDescription("Select a random item from a value collection.")
                 .withReturnValue(Object.class)
                 .withFunction(RandomData::selectRandom)
+                .build());
+        registry.addFunction(FunctionDef.builder()
+                .withCategory("random")
+                .withId("random")
+                .withArgs(List.of("values: object"))
+                .withDescription("Select a random item from a value collection.")
+                .withReturnValue(Object.class)
+                .withFunction(args -> RandomData.selectRandom(Arrays.asList(args)))
                 .build());
     }
 

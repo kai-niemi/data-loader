@@ -20,7 +20,7 @@ public class UpstreamChunkProducer extends AsyncChunkProducer {
                     publisher.<Map<String, Object>>getTopic(ref.getName())
                             .addMessageListener(message -> {
                                 if (!message.isPoisonPill()) {
-                                    fifoQueue.offer(ref.getName(), message.getPayload());
+                                    circularFifoQueue.put(ref.getName(), message.getPayload());
                                 }
                             });
                 });
@@ -43,16 +43,11 @@ public class UpstreamChunkProducer extends AsyncChunkProducer {
                 Ref ref = col.getRef();
                 if (ref != null) {
                     Map<String, Object> refValues =
-                            observedMap.computeIfAbsent(ref.getName(), fifoQueue::peekRandom);
-                    if (refValues.isEmpty()) {
-                        logger.info("Poison pill for ref column '%s' - breaking".formatted(ref.getName()));
-                        break outer;
-                    }
+                            observedMap.computeIfAbsent(ref.getName(), circularFifoQueue::take);
                     v = refValues.get(ref.getColumn());
                 } else {
                     v = columnGenerators.get(col).nextValue();
                 }
-
 
                 orderedValues.put(col.getName(), v);
             }

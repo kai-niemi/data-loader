@@ -1,5 +1,15 @@
 model:
+  import-into:
+    options:
+      delimiter: ","
+      skip: "1"
+      allow_quoted_null: "null"
+      fields_enclosed_by: '"'
+    file: "import.sql"
+    prefix: "http://${local-ip}:8090/"
+
   output-path: .output
+
   tables:
     - name: "warehouse"
       count: "100"
@@ -272,11 +282,3 @@ model:
           ref:
             name: "oorder"
             column: "o_id"
-  import:
-    options:
-      delimiter: ","
-      skip: "1"
-      allow_quoted_null: "null"
-      fields_enclosed_by: '"'
-    file: "import.sql"
-    prefix: "http://${local-ip}:8090/"

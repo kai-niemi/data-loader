@@ -1,7 +1,9 @@
 package io.roach.volt.csv.model;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -21,10 +23,17 @@ public class ApplicationModel {
     @JsonProperty("import-into")
     private ImportInto importInto;
 
+    private Map<ImportOption, String> options = new LinkedHashMap<>();
+
+    public Map<ImportOption, String> getOptions() {
+        return options;
+    }
+
+    public void setOptions(Map<ImportOption, String> options) {
+        this.options = options;
+    }
+
     public ImportInto getImportInto() {
-        if (importInto == null) {
-            importInto =  ImportInto.createDefault();
-        }
         return importInto;
     }
 

@@ -1,4 +1,12 @@
 model:
+  import-into:
+    options:
+      delimiter: ","
+      skip: "1"
+      allow_quoted_null: "null"
+      fields_enclosed_by: '"'
+    file: "import.sql"
+    prefix: "http://${local-ip}:8090/"
   output-path: .output
   tables:
     - name: customer
@@ -97,11 +105,3 @@ model:
             column: customer_id
         - name: note
           expression: "randomString(256)"
-  import:
-    options:
-      delimiter: ","
-      skip: "1"
-      allow_quoted_null: "null"
-      fields_enclosed_by: '"'
-    file: "import.sql"
-    prefix: "http://${local-ip}:8090/"

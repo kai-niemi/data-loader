@@ -17,10 +17,10 @@ import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
 
 import io.roach.volt.csv.event.AbstractEventPublisher;
-import io.roach.volt.shell.mergesort.ComparatorType;
-import io.roach.volt.shell.mergesort.ExternalMerge;
-import io.roach.volt.shell.mergesort.ExternalMergeSort;
-import io.roach.volt.shell.mergesort.ExternalSplit;
+import io.roach.volt.mergesort.ComparatorType;
+import io.roach.volt.mergesort.ExternalMerge;
+import io.roach.volt.mergesort.ExternalMergeSort;
+import io.roach.volt.mergesort.ExternalSplit;
 import io.roach.volt.shell.support.AnotherFileValueProvider;
 import io.roach.volt.shell.support.AnsiConsole;
 import io.roach.volt.shell.support.DirectoryValueProvider;

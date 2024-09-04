@@ -23,7 +23,6 @@ public class DataSourceConfiguration {
 
     @Bean
     @Primary
-//    @ConfigurationProperties("spring.datasource")
     public DataSourceProperties dataSourceProperties() {
         return new DataSourceProperties();
     }

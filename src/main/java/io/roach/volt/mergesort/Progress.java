@@ -1,4 +1,4 @@
-package io.roach.volt.shell.mergesort;
+package io.roach.volt.mergesort;
 
 public class Progress {
     enum Unit {

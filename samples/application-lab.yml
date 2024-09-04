@@ -8,17 +8,18 @@ model:
     file: "import.sql"
     prefix: "http://${local-ip}:8090/"
   outputPath: ".output"
+
   tables:
     - name: "payment_method"
       count: "10"
       columns:
-        - name: "payment_type"
-          expression: "randomString(15)"
         - name: "id"
           gen:
             type: "sequence"
             from: "1"
             step: 1
+        - name: "payment_type"
+          expression: "random('a','b','c','d','e','f')"
         - name: "number"
           expression: "randomString(255)"
         - name: "retailer"
@@ -27,13 +28,17 @@ model:
           expression: "randomString(25)"
 
     - name: "orders"
-      count: "100"
+      count: "100k"
       columns:
         - name: "id"
           gen:
             type: "sequence"
             from: "1"
             step: 1
+        - name: "payment_method_id"
+          ref:
+            name: "payment_method"
+            column: "id"
         - name: "bill_address1"
           expression: "randomString(255)"
         - name: "bill_address2"
@@ -50,10 +55,6 @@ model:
           expression: "randomString(255)"
         - name: "version"
           expression: "randomInt()"
-        - name: "payment_method_id"
-          ref:
-            name: "payment_method"
-            column: "id"
 
     - name: "order_item"
       columns:
@@ -79,4 +80,3 @@ model:
           expression: "randomString(255)"
         - name: "weight_kg"
           expression: "randomDouble()"
-

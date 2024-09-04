@@ -34,7 +34,7 @@ import io.roach.volt.util.graph.DirectedAcyclicGraph;
 
 @ShellComponent
 @ShellCommandGroup(CommandGroups.SCHEMA)
-public class ModelExport {
+public class Export {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -71,6 +71,7 @@ public class ModelExport {
         model.setOutputPath(outputDir);
         model.setTables(tables);
         model.setImportInto(ImportInto.createDefault());
+        model.getOptions().putAll(ImportInto.createDefaultOptions());
 
         logger.info("Topological order (inverse): %s".formatted(
                 String.join(",", tables.stream().map(Table::getName).toList()))

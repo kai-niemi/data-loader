@@ -1,4 +1,4 @@
-package io.roach.volt.shell.mergesort;
+package io.roach.volt.mergesort;
 
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;

@@ -1,4 +1,4 @@
-package io.roach.volt.shell.mergesort;
+package io.roach.volt.mergesort;
 
 import io.roach.volt.csv.event.GenericEvent;
 import org.springframework.context.event.EventListener;

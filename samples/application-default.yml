@@ -1,9 +1,25 @@
 model:
+  options:
+    delimiter: ","
+    fields_enclosed_by: '(empty)'
+
+  import-info:
+    options:
+      delimiter: ";"
+      fields_enclosed_by: '"'
+      allow_quoted_null: "null"
+      skip: "1"
+    file: "import.sql"
+    prefix: "http://${local-ip}:8090/"
+
   outputPath: ".output"
+
   tables:
     - name: "customer"
-      count: "100k"
-      files: "1"
+      count: "100"
+      options:
+        delimiter: "#"
+        fields_enclosed_by: '@'
       columns:
         - name: "id"
           gen:
@@ -31,7 +47,6 @@ model:
         - name: "updated_at"
           expression: "randomDateTime()"
     - name: "purchase_order"
-      files: "1"
       columns:
         - name: "id"
           gen:
@@ -78,7 +93,6 @@ model:
         - name: "version"
           expression: "randomInt()"
     - name: "purchase_order_item"
-      files: "1"
       columns:
         - name: "order_id"
           each:
@@ -103,11 +117,3 @@ model:
           expression: "randomCurrency()"
         - name: "weight_kg"
           expression: "randomDouble()"
-  import:
-    options:
-      delimiter: ","
-      skip: "1"
-      allow_quoted_null: "null"
-      fields_enclosed_by: '"'
-    file: "import.sql"
-    prefix: "http://${local-ip}:8090/"

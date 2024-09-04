@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import org.springframework.util.StringUtils;
 import io.roach.volt.csv.event.AbstractEventPublisher;
 import io.roach.volt.csv.event.CompletionEvent;
 import io.roach.volt.csv.event.GenericEvent;
+import io.roach.volt.csv.event.ProducerCompletedEvent;
 import io.roach.volt.csv.model.ApplicationModel;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.ImportInto;
@@ -40,16 +42,48 @@ import io.roach.volt.util.graph.DirectedAcyclicGraph;
 public class ImportIntoFileProducer extends AbstractEventPublisher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final Map<Table, List<Path>> completedTables = Collections.synchronizedMap(new LinkedHashMap<>());
+
     @Autowired
     private ApplicationModel applicationModel;
 
     @EventListener
+    public void onCompletedEvent(GenericEvent<ProducerCompletedEvent> event) {
+        completedTables.computeIfAbsent(event.getTarget().getTable(),
+                s -> new ArrayList<>()).add(event.getTarget().getPath());
+    }
+
+    @EventListener
     public void onCompletionEvent(GenericEvent<CompletionEvent> event) throws IOException {
-        Map<Table, List<Path>> paths = event.getTarget().getPaths();
+        ImportInto importInto = applicationModel.getImportInto();
+        if (importInto == null) {
+            logger.debug("No import-into object found - skipping");
+            return;
+        }
 
-        Map<Table, List<Path>> sortedPaths = sortByTopologyOrder(paths);
+        Map<Table, List<Path>> sortedTables = sortByTopologyOrder(completedTables);
 
-        createImportIntoFile(sortedPaths, applicationModel.getImportInto());
+        List<String> lines = new ArrayList<>();
+
+        sortedTables.forEach((k, v) -> {
+            lines.add(createImportIntoStatement(k, v, importInto));
+            lines.add("");
+        });
+
+        Path importFilePath = Paths.get(applicationModel.getOutputPath(), importInto.getFile());
+
+        Files.write(importFilePath,
+                lines,
+                StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING);
+
+        logger.info("Created import file '%s' in topological order: [%s]"
+                .formatted(importFilePath, sortedTables.keySet()
+                        .stream()
+                        .map(Table::getName)
+                        .collect(Collectors.joining(", ")))
+        );
     }
 
     private Map<Table, List<Path>> sortByTopologyOrder(Map<Table, List<Path>> paths) {
@@ -83,28 +117,6 @@ public class ImportIntoFileProducer extends AbstractEventPublisher {
         return sorted;
     }
 
-    private void createImportIntoFile(Map<Table, List<Path>> paths, ImportInto importInto) throws IOException {
-        List<String> lines = new ArrayList<>();
-
-        paths.forEach((k, v) -> {
-            lines.add(createImportIntoStatement(k, v, importInto));
-            lines.add("");
-        });
-
-        Path importFilePath = Paths.get(applicationModel.getOutputPath(), importInto.getFile());
-
-        Files.write(importFilePath,
-                lines,
-                StandardCharsets.UTF_8,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING);
-
-        logger.info("Created import file '%s' in topological order: [%s]"
-                .formatted(importFilePath, paths.keySet()
-                        .stream()
-                        .map(Table::getName)
-                        .collect(Collectors.joining(", "))));
-    }
 
     private String createImportIntoStatement(Table table, List<Path> paths, ImportInto importInto) {
         StringBuilder sb = new StringBuilder();

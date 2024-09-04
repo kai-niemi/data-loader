@@ -1,5 +1,15 @@
 model:
+  import-into:
+    options:
+      delimiter: ","
+      skip: "1"
+      allow_quoted_null: "null"
+      fields_enclosed_by: '"'
+    file: "import.sql"
+    prefix: "http://${local-ip}:8090/"
+
   outputPath: ".output"
+
   tables:
     - name: "account"
       count: "1000k"
@@ -18,11 +28,3 @@ model:
           expression: "randomFullName()"
         - name: "allow_negative"
           expression: "randomLong()"
-  import:
-    options:
-      delimiter: ","
-      skip: "1"
-      allow_quoted_null: "null"
-      fields_enclosed_by: '"'
-    file: "import.sql"
-    prefix: "http://${local-ip}:8090/"

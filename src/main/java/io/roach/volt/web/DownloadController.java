@@ -34,6 +34,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import io.roach.volt.config.ProfileNames;
 import io.roach.volt.csv.model.ApplicationModel;
+import io.roach.volt.csv.model.ImportInto;
 import io.roach.volt.web.model.MessageModel;
 import io.roach.volt.web.support.Gzip;
 
@@ -54,15 +55,18 @@ public class DownloadController {
             return ResponseEntity.ok(model);
         }
 
-        if (Files.isRegularFile(applicationModel.getImportInto().getPath())) {
-            model.add(Link.of(ServletUriComponentsBuilder.fromCurrentContextPath()
-                            .pathSegment(applicationModel.getImportInto().getFile())
-                            .buildAndExpand()
-                            .toUriString())
-                    .withRel(LinkRelations.DOWNLOAD_REL)
-                    .withTitle("Download file")
-                    .withType(MediaType.TEXT_PLAIN_VALUE)
-            );
+        ImportInto importInto = applicationModel.getImportInto();
+        if (importInto != null) {
+            if (Files.isRegularFile(importInto.getPath())) {
+                model.add(Link.of(ServletUriComponentsBuilder.fromCurrentContextPath()
+                                .pathSegment(importInto.getFile())
+                                .buildAndExpand()
+                                .toUriString())
+                        .withRel(LinkRelations.DOWNLOAD_REL)
+                        .withTitle("Import into SQL file")
+                        .withType(MediaType.TEXT_PLAIN_VALUE)
+                );
+            }
         }
 
         for (Path path : findFiles(basePath)) {

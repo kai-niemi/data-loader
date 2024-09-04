@@ -19,6 +19,7 @@ import io.roach.volt.csv.model.Table;
 import io.roach.volt.expression.ExpressionRegistry;
 import io.roach.volt.expression.ExpressionRegistryBuilder;
 import io.roach.volt.expression.FunctionDef;
+import io.roach.volt.util.concurrent.BlockingFifoQueue;
 import io.roach.volt.util.concurrent.CircularFifoQueue;
 import io.roach.volt.util.concurrent.FifoQueue;
 import io.roach.volt.pubsub.Publisher;
@@ -31,7 +32,11 @@ public abstract class AsyncChunkProducer implements ChunkProducer<String, Object
 
     protected final Map<Column, ValueGenerator<?>> columnGenerators = new LinkedHashMap<>();
 
-    protected final FifoQueue<String, Object> fifoQueue = new CircularFifoQueue<>(8192);
+    protected final FifoQueue<String, Object> blockingFifoQueue
+            = new BlockingFifoQueue<>(8192);
+
+    protected final FifoQueue<String, Object> circularFifoQueue
+            = new CircularFifoQueue<>(8192);
 
     protected DataSource dataSource;
 
