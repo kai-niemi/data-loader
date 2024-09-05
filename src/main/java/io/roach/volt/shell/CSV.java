@@ -99,6 +99,7 @@ public class CSV extends AbstractEventPublisher {
     public void onCompletionEvent(GenericEvent<CompletionEvent> event) {
         activeProducers.clear();
         if (quitOnCompletion.get()) {
+            logger.info("Quit on completion - sending exit event");
             publishEvent(new ExitEvent(0));
         }
     }
@@ -142,7 +143,7 @@ public class CSV extends AbstractEventPublisher {
         }
     }
 
-    @ShellMethodAvailability("ifActiveProducers")
+//    @ShellMethodAvailability("ifActiveProducers")
     @ShellMethod(value = "Cancel all background operations", key = {"csv-cancel", "c"})
     public void cancel() {
         publishEvent(new CancellationEvent());
@@ -151,7 +152,6 @@ public class CSV extends AbstractEventPublisher {
     @ShellMethodAvailability("ifNoActiveProducers")
     @ShellMethod(value = "Generate CSV files from application model", key = {"csv-generate", "g"})
     public void generate(@ShellOption(help = "quit on completion", defaultValue = "false") boolean quit,
-                         @ShellOption(help = "disallow base path creation", defaultValue = "false") boolean skipCreateBasePath,
                          @ShellOption(help = "file name prefix", defaultValue = "") String prefix,
                          @ShellOption(help = "file name suffix", defaultValue = ".csv") String suffix) {
         validateModel();
@@ -160,9 +160,6 @@ public class CSV extends AbstractEventPublisher {
 
         if (!Files.isDirectory(basePath)) {
             try {
-                if (skipCreateBasePath) {
-                    throw new ModelConfigException("Base path not found (or not a directory): " + basePath);
-                }
                 Files.createDirectories(basePath);
                 logger.info("Created base path '%s'".formatted(basePath));
             } catch (IOException e) {

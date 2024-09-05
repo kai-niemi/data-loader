@@ -11,6 +11,7 @@ import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
 
+import io.roach.volt.expression.Expression;
 import io.roach.volt.expression.ExpressionException;
 import io.roach.volt.expression.ExpressionRegistry;
 import io.roach.volt.expression.ExpressionRegistryBuilder;
@@ -19,7 +20,7 @@ import io.roach.volt.shell.support.FunctionValueProvider;
 
 @ShellComponent
 @ShellCommandGroup(CommandGroups.EXPR)
-public class Expression {
+public class Expressions {
     @Autowired
     private DataSource dataSource;
 
@@ -37,7 +38,7 @@ public class Expression {
 
         try {
             Instant now = Instant.now();
-            Object result = io.roach.volt.expression.Expression.evaluate(expression, registry);
+            Object result = Expression.evaluate(expression, registry);
             Duration duration = Duration.between(now, Instant.now());
 
             ansiConsole.magenta("Result: ")
@@ -52,7 +53,7 @@ public class Expression {
         }
     }
 
-    @ShellMethod(value = "List expression functions and variables", key = {"expr-functions", "lf"})
+    @ShellMethod(value = "List expression functions and variables", key = {"expr-functions", "f"})
     public void listFunctions() {
         final ExpressionRegistry registry = ExpressionRegistryBuilder.build(dataSource);
 

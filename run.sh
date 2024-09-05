@@ -68,7 +68,7 @@ select option in "<Start>" "<Quit>" "${options[@]}" ;  do
 done
 
 PS3='Please select additional profiles: '
-options=( "<Start>" "<Quit>"  "http")
+options=( "<Start>" "<Quit>"  "http" "verbose")
 
 select option in "${options[@]}"; do
   case $option in

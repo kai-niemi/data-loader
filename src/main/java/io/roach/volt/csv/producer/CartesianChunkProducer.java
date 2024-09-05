@@ -18,6 +18,7 @@ import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.Each;
 import io.roach.volt.csv.model.Ref;
 import io.roach.volt.csv.model.Table;
+import io.roach.volt.pubsub.EmptyTopic;
 import io.roach.volt.util.Cartesian;
 import io.roach.volt.pubsub.Message;
 import io.roach.volt.pubsub.MessageListener;
@@ -121,7 +122,7 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
 
         Topic<Map<String, Object>> topic = publisher.getTopic(table.getName());
         if (!topic.hasMessageListeners()) {
-            topic = new Topic.Empty<>();
+            topic = new EmptyTopic<>();
         }
 
         // Create cartesian product from columns sets
@@ -169,6 +170,6 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
             }
         }
 
-        topic.publish(Message.poisonPill()); // poison pill
+        topic.publish(Message.poisonPill());
     }
 }

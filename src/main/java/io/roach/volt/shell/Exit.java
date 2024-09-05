@@ -1,48 +1,53 @@
 package io.roach.volt.shell;
 
-import java.util.concurrent.TimeUnit;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.shell.ExitRequest;
+import org.springframework.shell.context.InteractionMode;
 import org.springframework.shell.standard.ShellCommandGroup;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.ShellOption;
 import org.springframework.shell.standard.commands.Quit;
 
-import io.roach.volt.shell.support.AnsiConsole;
+import io.roach.volt.csv.event.ExitEvent;
+import io.roach.volt.csv.event.GenericEvent;
 import io.roach.volt.util.AsciiArt;
 
 @ShellComponent
 @ShellCommandGroup(CommandGroups.ADMIN)
 public class Exit implements Quit.Command {
-    @Autowired
-    private ConfigurableApplicationContext applicationContext;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     @Qualifier("asyncTaskExecutor")
     private ThreadPoolTaskExecutor threadPoolExecutor;
 
     @Autowired
-    private AnsiConsole ansiConsole;
+    private ApplicationContext applicationContext;
 
-    @ShellMethod(value = "Exit the shell", key = {"q", "x", "quit", "exit"})
-    public void exit() {
+    @EventListener
+    public void onExitEvent(GenericEvent<ExitEvent> event) {
+        int code = event.getTarget().getExitCode();
+//        exit(event.getTarget().getExitCode());
         threadPoolExecutor.shutdown();
+        logger.info("Received exit event code: " + code);
+        // Unclear why both of these are needed..
+        SpringApplication.exit(applicationContext, () -> code);
+//        System.exit(code);
+    }
 
-        if (threadPoolExecutor.getActiveCount() > 0) {
-            ansiConsole.magenta("There are still %d pending worker(s) - unable"
-                    .formatted(threadPoolExecutor.getActiveCount()))
-                    .nl();
-            return;
-        }
-
-        ansiConsole.magenta("Exiting - bye! %s".formatted(AsciiArt.bye())).nl();
-
-        SpringApplication.exit(applicationContext, () -> 0);
-        System.exit(0);
+    @ShellMethod(value = "Exit the shell", key = {"q", "x", "quit", "exit"},
+            interactionMode = InteractionMode.INTERACTIVE)
+    public void exit(@ShellOption(help = "exit code", defaultValue = "0") int code) {
+        threadPoolExecutor.shutdown();
+        logger.info("Exiting - bye! %s".formatted(AsciiArt.bye()));
+        throw new ExitRequest(code);
     }
 }

@@ -44,20 +44,13 @@ public class AsyncConfiguration implements AsyncConfigurer {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(poolSize);
         executor.setMaxPoolSize(poolSize * 2);
-        executor.setThreadNamePrefix("async-");
+        executor.setThreadNamePrefix("async-pool-");
         executor.setStrictEarlyShutdown(true);
         executor.setWaitForTasksToCompleteOnShutdown(false);
         executor.setAcceptTasksAfterContextClose(false);
+        executor.setAwaitTerminationSeconds(5);
         executor.initialize();
         return executor;
-    }
-
-    /**
-     * Executor for pub/sub event dispatching.
-     */
-    @Bean(destroyMethod = "shutdownNow")
-    public ExecutorService pubSubExecutorService() {
-        return Executors.newCachedThreadPool();
     }
 
     @Bean("applicationEventMulticaster")

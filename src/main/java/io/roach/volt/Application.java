@@ -1,16 +1,12 @@
 package io.roach.volt;
 
-import io.roach.volt.config.ProfileNames;
-import io.roach.volt.csv.event.ExitEvent;
-import io.roach.volt.csv.event.GenericEvent;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.Set;
 
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.Banner;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.batch.BatchAutoConfiguration;
@@ -18,17 +14,13 @@ import org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConf
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.shell.jline.InteractiveShellRunner;
 import org.springframework.shell.jline.PromptProvider;
 import org.springframework.util.StringUtils;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.Set;
+import io.roach.volt.config.ProfileNames;
 
 @Configuration
 @ConfigurationPropertiesScan(basePackageClasses = Application.class)
@@ -92,22 +84,11 @@ public class Application implements PromptProvider {
                 .run(passThroughArgs.toArray(new String[] {}));
     }
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-
     @Override
     public AttributedString getPrompt() {
         return new AttributedString("volt:$ ",
                 AttributedStyle.DEFAULT
                         .foreground(AttributedStyle.GREEN | AttributedStyle.BRIGHT)
                         .blinkDefault());
-    }
-
-    @Autowired
-    private ConfigurableApplicationContext applicationContext;
-
-    @EventListener
-    public void onExitEvent(GenericEvent<ExitEvent> event) {
-        logger.trace("Received exit event code: " + event.getTarget().getExitCode());
-        SpringApplication.exit(applicationContext, () -> 0);
     }
 }

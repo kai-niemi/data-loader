@@ -62,7 +62,6 @@ public class CsvFileProducer extends AbstractEventPublisher {
 
     @EventListener
     public void onCancellationEvent(GenericEvent<CancellationEvent> event) {
-        logger.info("Cancellation request received");
         cancellationRequested.set(true);
     }
 
@@ -107,7 +106,7 @@ public class CsvFileProducer extends AbstractEventPublisher {
         try {
             CountDownLatch latch = scheduledEvent.getStartLatch();
             latch.countDown();
-            logger.info("Counting down start latch - remaining %d".formatted(latch.getCount()));
+            logger.info("Counting down latch - remaining %d".formatted(latch.getCount()));
             latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

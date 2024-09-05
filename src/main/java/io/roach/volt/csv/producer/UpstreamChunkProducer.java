@@ -7,6 +7,7 @@ import java.util.Map;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.Ref;
 import io.roach.volt.csv.model.Table;
+import io.roach.volt.pubsub.EmptyTopic;
 import io.roach.volt.pubsub.Message;
 import io.roach.volt.pubsub.Topic;
 
@@ -30,7 +31,7 @@ public class UpstreamChunkProducer extends AsyncChunkProducer {
     public void produceChunks(ChunkConsumer<String, Object> consumer) throws Exception {
         Topic<Map<String, Object>> topic = publisher.getTopic(table.getName());
         if (!topic.hasMessageListeners()) {
-            topic = new Topic.Empty<>();
+            topic = new EmptyTopic<>();
         }
 
         outer:
@@ -61,6 +62,6 @@ public class UpstreamChunkProducer extends AsyncChunkProducer {
             }
         }
 
-        topic.publish(Message.poisonPill()); // poison pill
+        topic.publish(Message.poisonPill());
     }
 }

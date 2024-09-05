@@ -25,7 +25,7 @@ public class FunctionValueProvider implements ValueProvider {
         for (FunctionDef functionDef : registry.functionDefinitions()) {
             if (functionDef.idMatchesPrefix(prefix)) {
                 result.add(new CompletionProposal(functionDef.getId())
-                                .value("\"" + functionDef.getId() + "()\"")
+                                .value("\"" + functionDef.getId() + "(..)\"")
                         .category(functionDef.getCategory())
                         .description(functionDef.getDescription())
                         .displayText(functionDef.getId()));

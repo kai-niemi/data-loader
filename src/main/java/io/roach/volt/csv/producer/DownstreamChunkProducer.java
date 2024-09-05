@@ -8,6 +8,7 @@ import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.Each;
 import io.roach.volt.csv.model.Ref;
 import io.roach.volt.csv.model.Table;
+import io.roach.volt.pubsub.EmptyTopic;
 import io.roach.volt.pubsub.Message;
 import io.roach.volt.pubsub.Topic;
 
@@ -55,14 +56,13 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
 
         Topic<Map<String, Object>> topic = publisher.getTopic(table.getName());
         if (!topic.hasMessageListeners()) {
-            topic = new Topic.Empty<>();
+            topic = new EmptyTopic<>();
         }
 
         final int rowEstimate = -1;
 
         // Wait for upstream values or poison pill to cancel (empty collection)
         Map<String, Object> upstreamValues = blockingFifoQueue.take(each.getName());
-        loop:
         while (!upstreamValues.isEmpty()) {
             // Repeat if needed
             for (int n = 0; n < each.getMultiplier(); n++) {
@@ -102,7 +102,7 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
             upstreamValues = blockingFifoQueue.take(each.getName());
         }
 
-        topic.publish(Message.poisonPill()); // poison pill
+        topic.publish(Message.poisonPill());
     }
 }
 
