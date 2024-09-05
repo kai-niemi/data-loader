@@ -46,6 +46,7 @@ model:
           expression: "randomCountry()"
         - name: "updated_at"
           expression: "randomDateTime()"
+
     - name: "purchase_order"
       columns:
         - name: "id"
@@ -56,7 +57,7 @@ model:
         - name: "customer_id"
           each:
             name: "customer"
-            column: "id"
+            column: "idxx"
             multiplier: 2
         - name: "bill_address1"
           expression: "randomString(255)"

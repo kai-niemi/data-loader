@@ -55,4 +55,15 @@ public class Range {
     public void setStepUnit(ChronoUnit stepUnit) {
         this.stepUnit = stepUnit;
     }
+
+    @Override
+    public String toString() {
+        return "Range{" +
+                "from='" + from + '\'' +
+                ", type=" + type +
+                ", to='" + to + '\'' +
+                ", step=" + step +
+                ", stepUnit=" + stepUnit +
+                '}';
+    }
 }

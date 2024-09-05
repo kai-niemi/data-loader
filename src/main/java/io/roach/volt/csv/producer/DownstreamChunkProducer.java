@@ -3,7 +3,10 @@ package io.roach.volt.csv.producer;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
+import io.roach.volt.csv.ConfigurationException;
+import io.roach.volt.csv.ProducerFailedException;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.Each;
 import io.roach.volt.csv.model.Ref;
@@ -13,7 +16,7 @@ import io.roach.volt.pubsub.Message;
 import io.roach.volt.pubsub.Topic;
 
 public class DownstreamChunkProducer extends AsyncChunkProducer {
-    private Each findUpstreamEach() {
+    private Each upstreamEachColumn() {
         return table.filterColumns(Table.WITH_EACH)
                 .stream()
                 .map(Column::getEach)
@@ -23,17 +26,22 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
 
     @Override
     protected void doInitialize() {
-        Each each = findUpstreamEach();
+        Each each = upstreamEachColumn();
 
         logger.debug("Downstream producer '%s' subscribing to each item of '%s'"
                 .formatted(table.getName(), each.getName()));
 
         publisher.<Map<String, Object>>getTopic(each.getName())
                 .addMessageListener(message -> {
-                    if (message.isPoisonPill()) {
-                        blockingFifoQueue.put(each.getName(), Map.of());
-                    } else {
-                        blockingFifoQueue.put(each.getName(), message.getPayload());
+                    try {
+                        if (message.isPoisonPill()) {
+                            blockingFifoQueue.put(each.getName(), Map.of());
+                        } else {
+                            blockingFifoQueue.put(each.getName(), message.getPayload());
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new ProducerFailedException("Interrupted put() for key " + each.getName(), e);
                     }
                 });
 
@@ -44,7 +52,12 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
                     publisher.<Map<String, Object>>getTopic(ref.getName())
                             .addMessageListener(message -> {
                                 if (!message.isPoisonPill()) {
-                                    circularFifoQueue.put(ref.getName(), message.getPayload());
+                                    try {
+                                        circularFifoQueue.put(ref.getName(), message.getPayload());
+                                    } catch (InterruptedException e) {
+                                        Thread.currentThread().interrupt();
+                                        throw new ProducerFailedException("Interrupted put() for key " + ref.getName(), e);
+                                    }
                                 }
                             });
                 });
@@ -52,7 +65,7 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
 
     @Override
     public void produceChunks(ChunkConsumer<String, Object> consumer) throws Exception {
-        Each each = findUpstreamEach();
+        Each each = upstreamEachColumn();
 
         Topic<Map<String, Object>> topic = publisher.getTopic(table.getName());
         if (!topic.hasMessageListeners()) {
@@ -73,14 +86,29 @@ public class DownstreamChunkProducer extends AsyncChunkProducer {
                     Object v;
                     if (col.getEach() != null) {
                         v = upstreamValues.get(each.getColumn());
+                        if (Objects.isNull(v)) {
+                            throw new ConfigurationException("Column each reference not found: %s"
+                                    .formatted(each), table);
+                        }
                     } else {
                         Ref ref = col.getRef();
                         if (ref != null) {
                             if (ref.getName().equals(each.getName())) {
                                 v = upstreamValues.get(ref.getColumn());
+                                if (Objects.isNull(v)) {
+                                    throw new ConfigurationException("Column ref not found: %s"
+                                            .formatted(ref), table);
+                                }
                             } else {
                                 Map<String, Object> values
-                                        = refMap.computeIfAbsent(ref.getName(), circularFifoQueue::take);
+                                        = refMap.computeIfAbsent(ref.getName(), key -> {
+                                    try {
+                                        return circularFifoQueue.take(key);
+                                    } catch (InterruptedException e) {
+                                        Thread.currentThread().interrupt();
+                                        throw new ProducerFailedException("Interrupted take() for key " + key, e);
+                                    }
+                                });
                                 v = values.get(ref.getColumn());
                             }
                         } else {

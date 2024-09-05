@@ -1,6 +1,5 @@
 package io.roach.volt.util.concurrent;
 
-import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,23 +24,13 @@ public class BlockingFifoQueue<K, V> implements FifoQueue<K, V> {
     }
 
     @Override
-    public Map<K, V> take(String key) {
-        try {
-            return queueFor(key).take();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new UndeclaredThrowableException(e, "Interrupted take for key: " + key);
-        }
+    public Map<K, V> take(String key) throws InterruptedException {
+        return queueFor(key).take();
     }
 
     @Override
-    public void put(String key, Map<K, V> values) {
-        try {
-            queueFor(key).put(ConcurrencyUtils.immutableCopyOf(values));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new UndeclaredThrowableException(e, "Interrupted put for key " + key);
-        }
+    public void put(String key, Map<K, V> values) throws InterruptedException {
+        queueFor(key).put(ConcurrencyUtils.immutableCopyOf(values));
     }
 }
 

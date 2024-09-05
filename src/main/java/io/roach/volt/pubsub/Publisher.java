@@ -66,7 +66,8 @@ public class Publisher {
                     throw new UndeclaredThrowableException(e);
                 } finally {
                     topics.remove(name);
-                    logger.info("Topic [%s] removed".formatted(name));
+                    logger.info("Topic [%s] removed - remaining: %s"
+                            .formatted(name, topics));
                 }
             });
 

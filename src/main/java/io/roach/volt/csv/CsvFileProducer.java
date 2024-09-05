@@ -22,19 +22,15 @@ import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.util.Pair;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import io.roach.volt.csv.event.AbstractEventPublisher;
 import io.roach.volt.csv.event.CancellationEvent;
-import io.roach.volt.csv.event.GenerateEvent;
+import io.roach.volt.csv.event.ResetEvent;
 import io.roach.volt.csv.event.GenericEvent;
-import io.roach.volt.csv.event.ProducerCancelledEvent;
-import io.roach.volt.csv.event.ProducerCompletedEvent;
-import io.roach.volt.csv.event.ProducerFailedEvent;
 import io.roach.volt.csv.event.ProducerProgressEvent;
-import io.roach.volt.csv.event.ProducerScheduledEvent;
-import io.roach.volt.csv.event.ProducerStartedEvent;
 import io.roach.volt.csv.model.ApplicationModel;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.ImportOption;
@@ -66,25 +62,20 @@ public class CsvFileProducer extends AbstractEventPublisher {
     }
 
     @EventListener
-    public void onGenerateEvent(GenericEvent<GenerateEvent> event) {
+    public void onGenerateEvent(GenericEvent<ResetEvent> event) {
         cancellationRequested.set(false);
     }
 
     @Async
-    @EventListener
-    public CompletableFuture<Integer> onScheduledEvent(GenericEvent<ProducerScheduledEvent> event) {
+    public CompletableFuture<Pair<Integer, Duration>> start(Table table, Path path, CountDownLatch startLatch) {
         if (cancellationRequested.get()) {
-            logger.warn("Cancellation has been requested - skipping");
-            return CompletableFuture.completedFuture(0);
+            logger.warn("Cancellation requested - skipping");
+            return CompletableFuture.completedFuture(Pair.of(0, Duration.ofSeconds(0)));
         }
 
-        final ProducerScheduledEvent scheduledEvent = event.getTarget();
-        final Path path = scheduledEvent.getPath();
-        final Table table = scheduledEvent.getTable();
         final AtomicInteger currentRow = new AtomicInteger();
         final Instant startTime = Instant.now();
         final AtomicReference<Instant> lastTick = new AtomicReference<>(startTime);
-        Exception failCause = null;
 
         final AsyncChunkProducer chunkProducer =
                 AsyncChunkProducers
@@ -92,8 +83,8 @@ public class CsvFileProducer extends AbstractEventPublisher {
                         .stream()
                         .filter(producerBuilder -> producerBuilder.test(table))
                         .findFirst()
-                        .orElseThrow(() -> new ModelConfigException(
-                                "No suitable chunk producer for table configuration: " + table))
+                        .orElseThrow(() -> new ConfigurationException(
+                                "No suitable chunk producer", table))
                         .get();
         chunkProducer.setDataSource(dataSource);
         chunkProducer.setPublisher(publisher);
@@ -104,21 +95,18 @@ public class CsvFileProducer extends AbstractEventPublisher {
         chunkProducer.initialize();
 
         try {
-            CountDownLatch latch = scheduledEvent.getStartLatch();
-            latch.countDown();
-            logger.info("Counting down latch - remaining %d".formatted(latch.getCount()));
-            latch.await();
+            startLatch.countDown();
+            logger.info("Counting down latch - remaining %d".formatted(startLatch.getCount()));
+            startLatch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            return CompletableFuture.failedFuture(e);
         }
-
-        publishEvent(new ProducerStartedEvent(table, path, chunkProducer.getClass().getSimpleName()));
 
         try (CsvStreamWriter<Map<String, Object>> writer = createCsvStreamWriter(table, path)) {
             chunkProducer.produceChunks((values, rowEstimate) -> {
                 if (cancellationRequested.get()) {
-                    logger.warn("Cancellation has been requested - aborting prematurely");
+                    logger.warn("Cancellation requested - aborting prematurely");
                     return false;
                 }
 
@@ -141,23 +129,11 @@ public class CsvFileProducer extends AbstractEventPublisher {
 
             writer.close();
 
-            return CompletableFuture.completedFuture(currentRow.get());
+            return CompletableFuture.completedFuture(
+                    Pair.of(currentRow.get(), Duration.between(startTime,Instant.now()))
+            );
         } catch (Exception e) {
-            failCause = e;
             return CompletableFuture.failedFuture(e);
-        } finally {
-            if (failCause != null) {
-                publishEvent(new ProducerFailedEvent(table, path)
-                        .setCause(failCause)
-                );
-            } else if (cancellationRequested.get()) {
-                publishEvent(new ProducerCancelledEvent(table, path));
-            } else {
-                publishEvent(new ProducerCompletedEvent(table, path)
-                        .setDuration(Duration.between(startTime, Instant.now()))
-                        .setRows(currentRow.get())
-                );
-            }
         }
     }
 

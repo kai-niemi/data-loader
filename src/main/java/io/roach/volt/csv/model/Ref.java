@@ -46,4 +46,12 @@ public class Ref {
     public int hashCode() {
         return Objects.hash(name, column);
     }
+
+    @Override
+    public String toString() {
+        return "Ref{" +
+                "column='" + column + '\'' +
+                ", name='" + name + '\'' +
+                '}';
+    }
 }

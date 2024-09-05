@@ -9,14 +9,10 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.springframework.util.Assert;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.roach.volt.util.Multiplier;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -106,6 +102,7 @@ public class Table {
     public String toString() {
         return "Table{" +
                 "name='" + name + '\'' +
+                ", count='" + count + '\'' +
                 '}';
     }
 }

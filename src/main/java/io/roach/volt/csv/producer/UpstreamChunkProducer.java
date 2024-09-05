@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import io.roach.volt.csv.ProducerFailedException;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.Ref;
 import io.roach.volt.csv.model.Table;
@@ -21,7 +22,12 @@ public class UpstreamChunkProducer extends AsyncChunkProducer {
                     publisher.<Map<String, Object>>getTopic(ref.getName())
                             .addMessageListener(message -> {
                                 if (!message.isPoisonPill()) {
-                                    circularFifoQueue.put(ref.getName(), message.getPayload());
+                                    try {
+                                        circularFifoQueue.put(ref.getName(), message.getPayload());
+                                    } catch (InterruptedException e) {
+                                        Thread.currentThread().interrupt();
+                                        throw new ProducerFailedException("Interrupted put() for key " + ref.getName(), e);
+                                    }
                                 }
                             });
                 });
@@ -34,7 +40,6 @@ public class UpstreamChunkProducer extends AsyncChunkProducer {
             topic = new EmptyTopic<>();
         }
 
-        outer:
         for (int i = 0; i < table.getFinalCount(); i++) {
             Map<String, Object> orderedValues = new LinkedHashMap<>();
             Map<String, Map<String, Object>> observedMap = new HashMap<>();
@@ -44,7 +49,14 @@ public class UpstreamChunkProducer extends AsyncChunkProducer {
                 Ref ref = col.getRef();
                 if (ref != null) {
                     Map<String, Object> refValues =
-                            observedMap.computeIfAbsent(ref.getName(), circularFifoQueue::take);
+                            observedMap.computeIfAbsent(ref.getName(), k -> {
+                                try {
+                                    return circularFifoQueue.take(k);
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                    throw new ProducerFailedException("Interrupted take() for key " + k, e);
+                                }
+                            });
                     v = refValues.get(ref.getColumn());
                 } else {
                     v = columnGenerators.get(col).nextValue();

@@ -40,7 +40,7 @@ public class Exit implements Quit.Command {
         logger.info("Received exit event code: " + code);
         // Unclear why both of these are needed..
         SpringApplication.exit(applicationContext, () -> code);
-//        System.exit(code);
+        System.exit(code);
     }
 
     @ShellMethod(value = "Exit the shell", key = {"q", "x", "quit", "exit"},
@@ -48,6 +48,8 @@ public class Exit implements Quit.Command {
     public void exit(@ShellOption(help = "exit code", defaultValue = "0") int code) {
         threadPoolExecutor.shutdown();
         logger.info("Exiting - bye! %s".formatted(AsciiArt.bye()));
-        throw new ExitRequest(code);
+        SpringApplication.exit(applicationContext, () -> code);
+        System.exit(code);
+//        throw new ExitRequest(code);
     }
 }

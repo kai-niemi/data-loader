@@ -29,4 +29,12 @@ public class ValueSet<T> {
     public void setWeights(List<Double> weights) {
         this.weights = weights;
     }
+
+    @Override
+    public String toString() {
+        return "ValueSet{" +
+                "values=" + values +
+                ", weights=" + weights +
+                '}';
+    }
 }

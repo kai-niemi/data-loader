@@ -1,6 +1,5 @@
 package io.roach.volt.util.concurrent;
 
-import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -24,16 +23,11 @@ public class CircularFifoQueue<K, V> implements FifoQueue<K, V> {
     }
 
     @Override
-    public Map<K, V> take(String key) {
+    public Map<K, V> take(String key) throws InterruptedException {
         RingBuffer<Map<K, V>> ringBuffer = ringBufferFor(key);
         Map<K, V> values = ringBuffer.getRandom();
         while (values == null) {
-            try {
-                TimeUnit.MILLISECONDS.sleep(500);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new UndeclaredThrowableException(e, "Interrupted take for key: " + key);
-            }
+            TimeUnit.MILLISECONDS.sleep(500);
             values = ringBuffer.getRandom();
         }
         return values;

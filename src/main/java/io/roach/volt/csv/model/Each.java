@@ -52,4 +52,13 @@ public class Each {
     public int hashCode() {
         return Objects.hash(name, column);
     }
+
+    @Override
+    public String toString() {
+        return "Each{" +
+                "column='" + column + '\'' +
+                ", name='" + name + '\'' +
+                ", multiplier=" + multiplier +
+                '}';
+    }
 }

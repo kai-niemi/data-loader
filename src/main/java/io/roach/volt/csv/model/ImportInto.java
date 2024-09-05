@@ -66,4 +66,13 @@ public class ImportInto {
     public void setOptions(Map<ImportOption, String> options) {
         this.options = options;
     }
+
+    @Override
+    public String toString() {
+        return "ImportInto{" +
+                "file='" + file + '\'' +
+                ", prefix='" + prefix + '\'' +
+                ", options=" + options +
+                '}';
+    }
 }

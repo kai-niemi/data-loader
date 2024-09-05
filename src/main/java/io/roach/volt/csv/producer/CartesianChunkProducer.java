@@ -14,15 +14,16 @@ import java.util.stream.Stream;
 
 import org.springframework.util.Assert;
 
+import io.roach.volt.csv.ProducerFailedException;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.Each;
 import io.roach.volt.csv.model.Ref;
 import io.roach.volt.csv.model.Table;
 import io.roach.volt.pubsub.EmptyTopic;
-import io.roach.volt.util.Cartesian;
 import io.roach.volt.pubsub.Message;
 import io.roach.volt.pubsub.MessageListener;
 import io.roach.volt.pubsub.Topic;
+import io.roach.volt.util.Cartesian;
 
 public class CartesianChunkProducer extends AsyncChunkProducer {
     private static final int WARN_THRESHOLD = 10_000_000;
@@ -40,10 +41,16 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                                 .addMessageListener(new MessageListener<>() {
                                     @Override
                                     public void onMessage(Message<Map<String, Object>> message) {
-                                        if (message.isPoisonPill()) {
-                                            blockingFifoQueue.put(each.getName(), Map.of());
-                                        } else {
-                                            blockingFifoQueue.put(each.getName(), message.getPayload());
+                                        try {
+                                            if (message.isPoisonPill()) {
+                                                blockingFifoQueue.put(each.getName(), Map.of());
+                                            } else {
+                                                blockingFifoQueue.put(each.getName(), message.getPayload());
+                                            }
+                                        } catch (InterruptedException e) {
+                                            Thread.currentThread().interrupt();
+                                            throw new ProducerFailedException("Interrupted put() for key " + each.getName(),
+                                                    e);
                                         }
                                     }
                                 });
@@ -57,7 +64,12 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                     publisher.<Map<String, Object>>getTopic(ref.getName())
                             .addMessageListener(message -> {
                                 if (!message.isPoisonPill()) {
-                                    circularFifoQueue.put(ref.getName(), message.getPayload());
+                                    try {
+                                        circularFifoQueue.put(ref.getName(), message.getPayload());
+                                    } catch (InterruptedException e) {
+                                        Thread.currentThread().interrupt();
+                                        throw new ProducerFailedException("Interrupted put() for key " + ref.getName(), e);
+                                    }
                                 }
                             });
                 });
@@ -73,10 +85,15 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                     if (!columnValueMap.containsKey(each.getName())) {
                         List<Map<String, Object>> rows = new LinkedList<>();
 
-                        Map<String, Object> values = blockingFifoQueue.take(each.getName());
-                        while (!values.isEmpty()) {
-                            rows.add(values);
-                            values = blockingFifoQueue.take(each.getName());
+                        try {
+                            Map<String, Object> values = blockingFifoQueue.take(each.getName());
+                            while (!values.isEmpty()) {
+                                rows.add(values);
+                                values = blockingFifoQueue.take(each.getName());
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new ProducerFailedException("Interrupted take() for key " + each.getName(), e);
                         }
 
                         columnValueMap.put(each.getName(), rows);

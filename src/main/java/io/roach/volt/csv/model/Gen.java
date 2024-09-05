@@ -72,4 +72,16 @@ public class Gen {
     public void setBatchSize(Integer batchSize) {
         this.batchSize = batchSize;
     }
+
+    @Override
+    public String toString() {
+        return "Gen{" +
+                "batchSize=" + batchSize +
+                ", type=" + type +
+                ", from='" + from + '\'' +
+                ", to='" + to + '\'' +
+                ", sequence='" + sequence + '\'' +
+                ", step=" + step +
+                '}';
+    }
 }

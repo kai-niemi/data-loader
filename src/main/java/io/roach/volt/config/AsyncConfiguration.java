@@ -1,10 +1,13 @@
 package io.roach.volt.config;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.aop.interceptor.SimpleAsyncUncaughtExceptionHandler;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +30,8 @@ import org.springframework.web.context.request.async.TimeoutCallableProcessingIn
 @EnableAspectJAutoProxy
 @EnableAsync
 public class AsyncConfiguration implements AsyncConfigurer {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     @Value("${application.maximum-threads}")
     private int threadPoolSize;
 
@@ -38,7 +43,7 @@ public class AsyncConfiguration implements AsyncConfigurer {
     /**
      * Executor for @Async processing and app event multicasting.
      */
-    @Bean(name = "asyncTaskExecutor", destroyMethod = "shutdown")
+    @Bean(name = "asyncTaskExecutor")
     public ThreadPoolTaskExecutor asyncTaskExecutor() {
         int poolSize = threadPoolSize > 0 ? threadPoolSize : Runtime.getRuntime().availableProcessors() * 4;
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -64,7 +69,11 @@ public class AsyncConfiguration implements AsyncConfigurer {
 
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
-        return new SimpleAsyncUncaughtExceptionHandler();
+        return (ex, method, params) -> {
+            if (logger.isErrorEnabled()) {
+                logger.error("Unexpected exception occurred invoking async method: " + method, ex);
+            }
+        };
     }
 
     @Bean

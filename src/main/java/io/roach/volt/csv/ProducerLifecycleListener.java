@@ -38,12 +38,12 @@ public class ProducerLifecycleListener extends AbstractEventPublisher {
         activeTables.add(startedEvent.getTable());
 
         if (startedEvent.isBoundedCount()) {
-            logger.info("Started producing '%s': %,d rows using '%s'".formatted(
+            logger.info("Started generating '%s': %,d rows using '%s'".formatted(
                     startedEvent.getPath(),
                     startedEvent.getTable().getFinalCount(),
                     startedEvent.getProducerInfo()));
         } else {
-            logger.info("Started producing '%s': ∞ rows using '%s'".formatted(
+            logger.info("Started generating '%s': ∞ rows using '%s'".formatted(
                     startedEvent.getPath(),
                     startedEvent.getProducerInfo()));
         }
@@ -70,7 +70,7 @@ public class ProducerLifecycleListener extends AbstractEventPublisher {
 
         activeTables.remove(event.getTarget().getTable());
 
-        logger.info("Completed producing '%s': %,d rows in %s (%.0f/s avg) (%s) - %d in queue".formatted(
+        logger.info("Completed generating '%s': %,d rows in %s (%.0f/s avg) (%s) - %d in queue".formatted(
                 event.getTarget().getPath(),
                 event.getTarget().getRows(),
                 event.getTarget().getDuration(),
@@ -86,18 +86,19 @@ public class ProducerLifecycleListener extends AbstractEventPublisher {
 
     @EventListener
     public void onCancelledEvent(GenericEvent<ProducerCancelledEvent> event) {
-        logger.warn("Cancelled producing table'%s'"
+        logger.warn("Cancelled generating CSV for table '%s'"
                 .formatted(event.getTarget().getTable()));
     }
 
     @EventListener
     public void onFailedEvent(GenericEvent<ProducerFailedEvent> event) {
-        logger.error("Failed to produce table '%s': %s"
-                .formatted(event.getTarget().getTable(), event.getTarget().getCause()));
+        logger.error("Failed to generating CSV for table '%s'"
+                .formatted(event.getTarget().getTable().getName()),
+                event.getTarget().getCause());
     }
 
     @EventListener
     public void onCompletionEvent(GenericEvent<CompletionEvent> event) {
-        logger.info("Successfully produced all file(s)");
+        logger.info("Successfully produced all CSV file(s)");
     }
 }

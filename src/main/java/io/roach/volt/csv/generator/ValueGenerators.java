@@ -6,7 +6,7 @@ import javax.sql.DataSource;
 
 import org.springframework.util.StringUtils;
 
-import io.roach.volt.csv.ModelConfigException;
+import io.roach.volt.csv.ConfigurationException;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.Gen;
 import io.roach.volt.csv.model.Range;
@@ -44,7 +44,7 @@ public abstract class ValueGenerators {
             return ValueGenerators.createValueSetGenerator(set);
         }
 
-        throw new ModelConfigException("No column generator for: " + column.getName());
+        throw new ConfigurationException("No column value generator found", column);
     }
 
 
