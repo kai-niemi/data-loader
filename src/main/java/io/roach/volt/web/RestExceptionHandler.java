@@ -1,4 +1,4 @@
-package io.roach.volt.web.support;
+package io.roach.volt.web;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import io.roach.volt.config.ProfileNames;
-import io.roach.volt.web.NotFoundException;
 
 @RestControllerAdvice
 @Profile(ProfileNames.HTTP)

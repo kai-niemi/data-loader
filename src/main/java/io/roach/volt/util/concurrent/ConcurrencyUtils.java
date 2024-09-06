@@ -22,7 +22,7 @@ public abstract class ConcurrencyUtils {
                     .orElseThrow(
                             () -> new UndeclaredThrowableException(e, "Collection was null or contained null values!"))
                     .getKey();
-            throw new UndeclaredThrowableException(e, "Collection contained null value for key " + k);
+            throw new IllegalArgumentException("Map value is null for key " + k);
         }
     }
 

@@ -8,6 +8,7 @@ model:
     file: "import.sql"
     prefix: "http://${local-ip}:8090/"
   outputPath: ".output"
+
   tables:
     - name: "payment_method"
       count: "100"
@@ -76,23 +77,23 @@ model:
           expression: "randomString(128)"
         - name: "user_name"
           expression: "randomString(15)"
-#        - name: "payment_method_id"
-#          ref:
-#            name: "payment_method"
-#            column: "id"
+        - name: "payment_method_id"
+          ref:
+            name: "payment_method"
+            column: "id"
 
-#    - name: "customer_payment_method"
-#      columns:
-#        - name: "user_id"
-#          each:
-#            name: "customer"
-#            column: "id"
-#            multiplier: 1
-#        - name: "payment_method_id"
-#          each:
-#            name: "payment_method"
-#            column: "id"
-#            multiplier: 1
+    - name: "customer_payment_method"
+      columns:
+        - name: "user_id"
+          each:
+            name: "customer"
+            column: "id"
+            multiplier: 1
+        - name: "payment_method_id"
+          each:
+            name: "payment_method"
+            column: "id"
+            multiplier: 1
 
     - name: "attachment"
       count: "100"
@@ -303,34 +304,34 @@ model:
             from: "1"
             step: 1
 
-#    - name: "order_item"
-#      columns:
-#        - name: "order_id"
-#          each:
-#            name: "orders"
-#            column: "id"
-#            multiplier: 1
-#        - name: "load_type"
-#          expression: "randomString(16)"
-#        - name: "product_variation_id"
-#          each:
-#            name: "product_variation"
-#            column: "id"
-#            multiplier: 1
-#        - name: "quantity"
-#          expression: "randomInt()"
-#        - name: "status"
-#          expression: "randomString(64)"
-#        - name: "amount"
-#          expression: "randomBigDecimal(0,100000000000000000,2)"
-#        - name: "currency"
-#          expression: "randomString(255)"
-#        - name: "weight_kg"
-#          expression: "randomDouble()"
-#        - name: "item_pos"
-#          gen:
-#            type: "unordered"
-#            batchSize: 512
+    - name: "order_item"
+      columns:
+        - name: "order_id"
+          each:
+            name: "orders"
+            column: "id"
+            multiplier: 1
+        - name: "load_type"
+          expression: "randomString(16)"
+        - name: "product_variation_id"
+          each:
+            name: "product_variation"
+            column: "id"
+            multiplier: 1
+        - name: "quantity"
+          expression: "randomInt()"
+        - name: "status"
+          expression: "randomString(64)"
+        - name: "amount"
+          expression: "randomBigDecimal(0,100000000000000000,2)"
+        - name: "currency"
+          expression: "randomString(255)"
+        - name: "weight_kg"
+          expression: "randomDouble()"
+        - name: "item_pos"
+          gen:
+            type: "unordered"
+            batchSize: 512
 
     - name: "product_tag"
       columns:

@@ -35,8 +35,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import io.roach.volt.config.ProfileNames;
 import io.roach.volt.csv.model.ApplicationModel;
 import io.roach.volt.csv.model.ImportInto;
-import io.roach.volt.web.model.MessageModel;
-import io.roach.volt.web.support.Gzip;
+import io.roach.volt.util.Gzip;
 
 @RestController
 @Profile(ProfileNames.HTTP)

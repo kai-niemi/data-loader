@@ -1,19 +1,20 @@
-package io.roach.volt.csv.producer;
+package io.roach.volt.csv.file;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.util.Assert;
 
+import io.roach.volt.csv.ConfigurationException;
 import io.roach.volt.csv.ProducerFailedException;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.Each;
@@ -21,58 +22,30 @@ import io.roach.volt.csv.model.Ref;
 import io.roach.volt.csv.model.Table;
 import io.roach.volt.pubsub.EmptyTopic;
 import io.roach.volt.pubsub.Message;
-import io.roach.volt.pubsub.MessageListener;
 import io.roach.volt.pubsub.Topic;
 import io.roach.volt.util.Cartesian;
 
+/**
+ * A cartesian (cross-product) producer is mapped to tables with more
+ * than one each ref column typical for many-to-many relations.
+ * It consumes, aggregates and computes a cartesian product of all
+ * ref column permutations. This can be time-consuming and has combinatorial
+ * complexity with high memory consumption, thus use with caution.
+ */
 public class CartesianChunkProducer extends AsyncChunkProducer {
     private static final int WARN_THRESHOLD = 10_000_000;
 
     @Override
     protected void doInitialize() {
-        Set<String> eachSet = new HashSet<>();
-
         table.filterColumns(Table.WITH_EACH)
                 .stream()
                 .map(Column::getEach)
-                .forEach(each -> {
-                    if (eachSet.add(each.getName())) {
-                        publisher.<Map<String, Object>>getTopic(each.getName())
-                                .addMessageListener(new MessageListener<>() {
-                                    @Override
-                                    public void onMessage(Message<Map<String, Object>> message) {
-                                        try {
-                                            if (message.isPoisonPill()) {
-                                                blockingFifoQueue.put(each.getName(), Map.of());
-                                            } else {
-                                                blockingFifoQueue.put(each.getName(), message.getPayload());
-                                            }
-                                        } catch (InterruptedException e) {
-                                            Thread.currentThread().interrupt();
-                                            throw new ProducerFailedException("Interrupted put() for key " + each.getName(),
-                                                    e);
-                                        }
-                                    }
-                                });
-                    }
-                });
+                .forEach(this::subscribeTo);
 
         table.filterColumns(Table.WITH_REF)
                 .stream()
                 .map(Column::getRef)
-                .forEach(ref -> {
-                    publisher.<Map<String, Object>>getTopic(ref.getName())
-                            .addMessageListener(message -> {
-                                if (!message.isPoisonPill()) {
-                                    try {
-                                        circularFifoQueue.put(ref.getName(), message.getPayload());
-                                    } catch (InterruptedException e) {
-                                        Thread.currentThread().interrupt();
-                                        throw new ProducerFailedException("Interrupted put() for key " + ref.getName(), e);
-                                    }
-                                }
-                            });
-                });
+                .forEach(this::subscribeTo);
     }
 
     private List<List<Map<String, Object>>> drainUpStreamTopics() {
@@ -86,10 +59,10 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                         List<Map<String, Object>> rows = new LinkedList<>();
 
                         try {
-                            Map<String, Object> values = blockingFifoQueue.take(each.getName());
+                            Map<String, Object> values = boundedFifoQueue.take(each.getName());
                             while (!values.isEmpty()) {
                                 rows.add(values);
-                                values = blockingFifoQueue.take(each.getName());
+                                values = boundedFifoQueue.take(each.getName());
                             }
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
@@ -128,7 +101,7 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                 .reduce(1, Math::multiplyExact);
 
         if (rowEstimate > WARN_THRESHOLD) {
-            logger.warn("Potentially very large cartesian product for '%s' with %,d rows"
+            logger.warn("Potentially large cartesian product for '%s' with %,d rows"
                     .formatted(table.getName(), rowEstimate));
         } else {
             logger.debug("Drained queues for '%s' with %,d rows - starting to stream"
@@ -153,9 +126,9 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                 .takeWhile(objects -> !cancel.get())
                 .toList()) {
 
-            Map<String, Object> orderedValues = new LinkedHashMap<>();
+            Map<String, Object> orderedTuples = new LinkedHashMap<>();
 
-            for (Column c : table.filterColumns(column -> true)) {
+            for (Column c : table.getColumns()) {
                 Object v;
 
                 Each each = c.getEach();
@@ -168,6 +141,10 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                     if (ref != null) {
                         if (columnIndexes.containsKey(ref.getName())) {
                             v = productMap.get(columnIndexes.get(ref.getName())).get(ref.getColumn());
+                            if (Objects.isNull(v)) {
+                                throw new ConfigurationException("Column ref not found: %s"
+                                        .formatted(ref), table);
+                            }
                         } else {
                             v = circularFifoQueue.take(ref.getName());
                         }
@@ -175,12 +152,14 @@ public class CartesianChunkProducer extends AsyncChunkProducer {
                         v = columnGenerators.get(c).nextValue();
                     }
                 }
-                orderedValues.put(c.getName(), v);
+                orderedTuples.put(c.getName(), v);
             }
 
-            topic.publish(Message.of(orderedValues));
+            topic.publish(Message.of(orderedTuples));
 
-            Map<String, Object> copy = filterIncludes(orderedValues);
+            Map<String, Object> copy = filterIncludedValues(orderedTuples);
+
+            currentRow.incrementAndGet();
 
             if (!consumer.consumeChunk(copy, rowEstimate)) {
                 cancel.set(true);

@@ -13,7 +13,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import io.roach.volt.config.ProfileNames;
 import io.roach.volt.util.RandomData;
-import io.roach.volt.web.model.MessageModel;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;

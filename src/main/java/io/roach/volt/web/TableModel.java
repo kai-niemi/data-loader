@@ -1,4 +1,4 @@
-package io.roach.volt.web.model;
+package io.roach.volt.web;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +10,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import io.roach.volt.csv.model.Column;
-import io.roach.volt.web.LinkRelations;
 import jakarta.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

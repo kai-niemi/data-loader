@@ -1,4 +1,4 @@
-package io.roach.volt.csv;
+package io.roach.volt.csv.file;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -13,6 +13,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
@@ -26,23 +27,22 @@ import org.springframework.data.util.Pair;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import io.roach.volt.csv.ConfigurationException;
 import io.roach.volt.csv.event.AbstractEventPublisher;
 import io.roach.volt.csv.event.CancellationEvent;
-import io.roach.volt.csv.event.ResetEvent;
 import io.roach.volt.csv.event.GenericEvent;
 import io.roach.volt.csv.event.ProducerProgressEvent;
+import io.roach.volt.csv.event.ResetEvent;
 import io.roach.volt.csv.model.ApplicationModel;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.ImportOption;
 import io.roach.volt.csv.model.Table;
-import io.roach.volt.csv.producer.AsyncChunkProducer;
-import io.roach.volt.csv.producer.AsyncChunkProducers;
 import io.roach.volt.csv.stream.CsvStreamWriter;
 import io.roach.volt.csv.stream.CsvStreamWriterBuilder;
 import io.roach.volt.pubsub.Publisher;
 
 @Component
-public class CsvFileProducer extends AbstractEventPublisher {
+public class CsvFileGenerator extends AbstractEventPublisher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final AtomicBoolean cancellationRequested = new AtomicBoolean();
@@ -73,26 +73,28 @@ public class CsvFileProducer extends AbstractEventPublisher {
             return CompletableFuture.completedFuture(Pair.of(0, Duration.ofSeconds(0)));
         }
 
-        final AtomicInteger currentRow = new AtomicInteger();
-        final Instant startTime = Instant.now();
-        final AtomicReference<Instant> lastTick = new AtomicReference<>(startTime);
-
-        final AsyncChunkProducer chunkProducer =
-                AsyncChunkProducers
-                        .options()
+        final ChunkProducerQualifier chunkProducerQualifier =
+                ChunkProducers
+                        .allQualifiers()
                         .stream()
                         .filter(producerBuilder -> producerBuilder.test(table))
                         .findFirst()
-                        .orElseThrow(() -> new ConfigurationException(
-                                "No suitable chunk producer", table))
-                        .get();
-        chunkProducer.setDataSource(dataSource);
-        chunkProducer.setPublisher(publisher);
-        chunkProducer.setCurrentRow(currentRow);
-        chunkProducer.setTable(table);
+                        .orElseThrow(() -> new ConfigurationException("No suitable chunk producer", table));
 
-        // Allow all producers to initialize before any starts producing (via latch)
-        chunkProducer.initialize();
+        logger.info("Initializing '%s' for table '%s'"
+                .formatted(chunkProducerQualifier.description(), table.getName()));
+
+        final ChunkProducer<String, Object> chunkProducer = chunkProducerQualifier.get();
+        if (chunkProducer instanceof AsyncProducer producer) {
+            // Allow all producers to initialize before any starts producing (via latch)
+            producer.initialize(dataSource, publisher, table);
+        } else {
+            throw new IllegalStateException("Expected async producer, got: "
+                    + chunkProducer.getClass().getName());
+        }
+
+        final Instant startTime = Instant.now();
+        final AtomicReference<Instant> lastTick = new AtomicReference<>(startTime);
 
         try {
             startLatch.countDown();
@@ -104,6 +106,8 @@ public class CsvFileProducer extends AbstractEventPublisher {
         }
 
         try (CsvStreamWriter<Map<String, Object>> writer = createCsvStreamWriter(table, path)) {
+            Supplier<Integer> currentRow = chunkProducer.currentRow();
+
             chunkProducer.produceChunks((values, rowEstimate) -> {
                 if (cancellationRequested.get()) {
                     logger.warn("Cancellation requested - aborting prematurely");
@@ -111,8 +115,6 @@ public class CsvFileProducer extends AbstractEventPublisher {
                 }
 
                 writer.write(Chunk.of(values));
-
-                currentRow.incrementAndGet();
 
                 if (rowEstimate > 0 && Duration.between(lastTick.get(), Instant.now()).getSeconds() > 1.0) {
                     publishEvent(new ProducerProgressEvent(table, path)
@@ -130,7 +132,7 @@ public class CsvFileProducer extends AbstractEventPublisher {
             writer.close();
 
             return CompletableFuture.completedFuture(
-                    Pair.of(currentRow.get(), Duration.between(startTime,Instant.now()))
+                    Pair.of(currentRow.get(), Duration.between(startTime, Instant.now()))
             );
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);

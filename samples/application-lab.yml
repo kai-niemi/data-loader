@@ -21,14 +21,14 @@ model:
         - name: "payment_type"
           expression: "random('a','b','c','d','e','f')"
         - name: "number"
-          expression: "randomString(255)"
+          expression: "rowNumber()"
         - name: "retailer"
           expression: "randomString(255)"
         - name: "voucher_code"
           expression: "randomString(25)"
 
     - name: "orders"
-      count: "100k"
+      count: "10k"
       columns:
         - name: "id"
           gen:
@@ -71,7 +71,7 @@ model:
         - name: "load_type"
           expression: "randomString(16)"
         - name: "quantity"
-          expression: "randomInt()"
+          expression: "rowNumber()"
         - name: "status"
           expression: "randomString(64)"
         - name: "amount"

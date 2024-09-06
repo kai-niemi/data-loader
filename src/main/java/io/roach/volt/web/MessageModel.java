@@ -1,4 +1,4 @@
-package io.roach.volt.web.model;
+package io.roach.volt.web;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.springframework.hateoas.RepresentationModel;

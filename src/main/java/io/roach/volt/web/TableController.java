@@ -29,9 +29,6 @@ import io.roach.volt.csv.model.Gen;
 import io.roach.volt.csv.model.Table;
 import io.roach.volt.schema.MetaDataUtils;
 import io.roach.volt.schema.ModelExporter;
-import io.roach.volt.web.model.MessageModel;
-import io.roach.volt.web.model.TableModel;
-import io.roach.volt.web.support.CsvGenerator;
 import jakarta.validation.Valid;
 
 import static io.roach.volt.csv.model.IdentityType.uuid;
@@ -46,7 +43,7 @@ public class TableController {
     private DataSource dataSource;
 
     @Autowired
-    private CsvGenerator csvGenerator;
+    private CsvStreamGenerator csvStreamGenerator;
 
     @GetMapping(value = "/table")
     public ResponseEntity<MessageModel> index() {
@@ -86,7 +83,7 @@ public class TableController {
 
             tableModel.getColumns().addAll(t.getColumns());
             tableModel.setRows(t.getCount());
-            tableModel.setImportInto(csvGenerator.generateImportInto(tableModel));
+            tableModel.setImportInto(csvStreamGenerator.generateImportInto(tableModel));
         } else {
             tableModel.setNote("Table not found: " + table);
 
@@ -125,7 +122,7 @@ public class TableController {
         if (tableModel.isGzip()) {
             bb.header(HttpHeaders.CONTENT_ENCODING, "gzip");
         }
-        return bb.body(outputStream -> csvGenerator.generateCsvStream(tableModel, outputStream));
+        return bb.body(outputStream -> csvStreamGenerator.generateCsvStream(tableModel, outputStream));
     }
 
     @GetMapping(value = "/table/schema/{table}",
@@ -161,6 +158,6 @@ public class TableController {
             bb.header(HttpHeaders.CONTENT_ENCODING, "gzip");
         }
 
-        return bb.body(outputStream -> csvGenerator.generateCsvStream(tableModel, outputStream));
+        return bb.body(outputStream -> csvStreamGenerator.generateCsvStream(tableModel, outputStream));
     }
 }

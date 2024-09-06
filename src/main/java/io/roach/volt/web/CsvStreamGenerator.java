@@ -1,4 +1,4 @@
-package io.roach.volt.web.support;
+package io.roach.volt.web;
 
 import java.io.BufferedWriter;
 import java.io.OutputStream;
@@ -20,22 +20,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import io.roach.volt.csv.file.ChunkProducer;
+import io.roach.volt.csv.file.StreamingChunkProducer;
 import io.roach.volt.csv.generator.ValueGenerator;
 import io.roach.volt.csv.generator.ValueGenerators;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.Table;
-import io.roach.volt.csv.producer.ChunkProducer;
-import io.roach.volt.csv.producer.StreamingChunkProducer;
 import io.roach.volt.csv.stream.CsvStreamWriter;
 import io.roach.volt.csv.stream.CsvStreamWriterBuilder;
 import io.roach.volt.expression.ExpressionRegistry;
 import io.roach.volt.expression.ExpressionRegistryBuilder;
 import io.roach.volt.expression.FunctionDef;
-import io.roach.volt.web.BadRequestException;
-import io.roach.volt.web.model.TableModel;
 
 @Component
-public class CsvGenerator {
+public class CsvStreamGenerator {
     private static final Predicate<Column> COLUMN_INCLUDE_PREDICATE
             = column -> (column.isHidden() == null || !column.isHidden())
             && column.getEach() == null && column.getRef() == null;

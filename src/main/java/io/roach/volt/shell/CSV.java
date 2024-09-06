@@ -32,7 +32,8 @@ import org.springframework.shell.standard.ShellOption;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.roach.volt.csv.ConfigurationException;
-import io.roach.volt.csv.CsvFileProducer;
+import io.roach.volt.csv.file.CsvFileGenerator;
+import io.roach.volt.csv.file.ChunkProducerQualifier;
 import io.roach.volt.csv.event.AbstractEventPublisher;
 import io.roach.volt.csv.event.CancellationEvent;
 import io.roach.volt.csv.event.CompletionEvent;
@@ -46,7 +47,7 @@ import io.roach.volt.csv.event.ResetEvent;
 import io.roach.volt.csv.model.ApplicationModel;
 import io.roach.volt.csv.model.Root;
 import io.roach.volt.csv.model.Table;
-import io.roach.volt.csv.producer.AsyncChunkProducers;
+import io.roach.volt.csv.file.ChunkProducers;
 import io.roach.volt.shell.support.AnsiConsole;
 import io.roach.volt.util.AsciiArt;
 
@@ -66,7 +67,7 @@ public class CSV extends AbstractEventPublisher {
     private ObjectMapper yamlObjectMapper;
 
     @Autowired
-    private CsvFileProducer csvFileProducer;
+    private CsvFileGenerator csvFileGenerator;
 
     private final AtomicBoolean quitOnCompletion = new AtomicBoolean();
 
@@ -129,12 +130,12 @@ public class CSV extends AbstractEventPublisher {
     private void validateModel() {
         for (Table table : applicationModel.getTables()) {
             // Find suitable chunk producer for table and validate
-            List<AsyncChunkProducers.ProducerFactory> builders = AsyncChunkProducers.options()
+            List<ChunkProducerQualifier> builders = ChunkProducers.allQualifiers()
                     .stream()
-                    .filter(producerFactory -> producerFactory.test(table))
+                    .filter(chunkProducerQualifier -> chunkProducerQualifier.test(table))
                     .toList();
 
-            builders.forEach(builder -> builder.validate(table));
+            builders.forEach(builder -> builder.validate(applicationModel.getTables(), table));
 
             if (builders.isEmpty()) {
                 throw new ConfigurationException("No suitable chunk producer - ambiguous column refs and/or row counts",
@@ -195,7 +196,7 @@ public class CSV extends AbstractEventPublisher {
             Path path = basePath.resolve("%s%s%s".formatted(prefix, table.getName(), suffix));
 
             Task task = new Task();
-            task.future = csvFileProducer.start(table, path, startLatch);
+            task.future = csvFileGenerator.start(table, path, startLatch);
             task.table = table;
             task.path = path;
 

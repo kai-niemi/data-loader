@@ -1,8 +1,10 @@
-package io.roach.volt.csv.producer;
+package io.roach.volt.csv.file;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import io.roach.volt.csv.generator.ValueGenerator;
 import io.roach.volt.csv.model.Column;
@@ -14,6 +16,8 @@ public class StreamingChunkProducer implements ChunkProducer<String, Object> {
     private final Map<Column, ValueGenerator<?>> columnGenerators;
 
     private final Predicate<Column> predicate;
+
+    private final AtomicInteger currentRow = new AtomicInteger();
 
     public StreamingChunkProducer(Table table,
                                   Map<Column, ValueGenerator<?>> columnGenerators,
@@ -30,15 +34,22 @@ public class StreamingChunkProducer implements ChunkProducer<String, Object> {
     }
 
     @Override
+    public Supplier<Integer> currentRow() {
+        return currentRow::get;
+    }
+
+    @Override
     public void produceChunks(ChunkConsumer<String, Object> consumer) throws Exception {
         for (int i = 0; i < table.getFinalCount(); i++) {
-            Map<String, Object> orderedValues = new LinkedHashMap<>();
+            currentRow.incrementAndGet();
+
+            Map<String, Object> orderedTuples = new LinkedHashMap<>();
 
             for (Column col : table.filterColumns(predicate)) {
-                orderedValues.put(col.getName(), columnGenerators.get(col).nextValue());
+                orderedTuples.put(col.getName(), columnGenerators.get(col).nextValue());
             }
 
-            if (!consumer.consumeChunk(orderedValues, table.getFinalCount())) {
+            if (!consumer.consumeChunk(orderedTuples, table.getFinalCount())) {
                 break;
             }
         }

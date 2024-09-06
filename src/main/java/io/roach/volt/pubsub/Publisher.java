@@ -54,7 +54,7 @@ public class Publisher {
             Future<Void> future = threadPoolExecutor.submit(() -> {
                 try {
                     DefaultTopic.Stats stats = topic.drainAndBroadcast();
-                    logger.info("Topic [%s] drained - listeners(%d) queued(%d) dequeued(%d) published(%d)"
+                    logger.debug("Topic [%s] drained - listeners(%d) queued(%d) dequeued(%d) published(%d)"
                             .formatted(stats.getName(),
                                     stats.getListeners(),
                                     stats.getEventsQueued(),
@@ -66,14 +66,14 @@ public class Publisher {
                     throw new UndeclaredThrowableException(e);
                 } finally {
                     topics.remove(name);
-                    logger.info("Topic [%s] removed - remaining: %s"
-                            .formatted(name, topics));
+                    logger.debug("Topic [%s] removed - remaining: %s"
+                            .formatted(name, topics.keySet()));
                 }
             });
 
             futures.add(new WeakReference<>(future));
 
-            logger.info("Topic [%s] created - queue size %d".formatted(name, queueSize));
+            logger.debug("Topic [%s] created - queue size %d".formatted(name, queueSize));
 
             return topic;
         });
@@ -92,7 +92,7 @@ public class Publisher {
             }
         });
 
-        logger.info("Cancelled %d futures".formatted(futures.size()));
+        logger.debug("Cancelled %d futures".formatted(futures.size()));
 
         futures.clear();
     }

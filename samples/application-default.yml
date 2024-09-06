@@ -57,7 +57,7 @@ model:
         - name: "customer_id"
           each:
             name: "customer"
-            column: "idxx"
+            column: "id"
             multiplier: 2
         - name: "bill_address1"
           expression: "randomString(255)"

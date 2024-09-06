@@ -1,7 +1,13 @@
-package io.roach.volt.csv.producer;
+package io.roach.volt.csv.file;
 
 import java.util.Map;
 
+/**
+ * Consumer side of generated single insertion-ordered key-value pairs.
+ *
+ * @param <K> map key type
+ * @param <V> map key value
+ */
 @FunctionalInterface
 public interface ChunkConsumer<K,V> {
     /**
