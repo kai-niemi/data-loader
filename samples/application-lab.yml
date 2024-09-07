@@ -28,7 +28,7 @@ model:
           expression: "randomString(25)"
 
     - name: "orders"
-      count: "10m"
+      count: "10"
       columns:
         - name: "id"
           gen:
@@ -39,20 +39,12 @@ model:
           ref:
             name: "payment_method"
             column: "id"
-        - name: "bill_address1"
-          expression: "randomString(255)"
-        - name: "bill_address2"
-          expression: "randomString(255)"
-        - name: "bill_city"
-          expression: "randomString(255)"
-        - name: "bill_country_code"
-          expression: "randomString(16)"
-        - name: "status"
-          expression: "randomString(64)"
-        - name: "amount"
-          expression: "randomBigDecimal(0,100000000000000000,2)"
+        - name: "payment_type"
+          ref:
+            name: "payment_method"
+            column: "payment_type"
         - name: "currency"
-          expression: "randomString(255)"
+          expression: "randomCurrency()"
         - name: "version"
           expression: "randomInt()"
 
@@ -62,7 +54,7 @@ model:
           each:
             name: "orders"
             column: "id"
-            multiplier: 1
+            multiplier: 2
         - name: "item_pos"
           gen:
             type: "sequence"
@@ -76,7 +68,5 @@ model:
           expression: "randomString(64)"
         - name: "amount"
           expression: "randomBigDecimal(0,100000000000000000,2)"
-        - name: "currency"
-          expression: "randomString(255)"
         - name: "weight_kg"
           expression: "randomDouble()"
