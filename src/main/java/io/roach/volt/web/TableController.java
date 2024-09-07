@@ -29,6 +29,8 @@ import io.roach.volt.csv.model.Gen;
 import io.roach.volt.csv.model.Table;
 import io.roach.volt.schema.MetaDataUtils;
 import io.roach.volt.schema.ModelExporter;
+import io.roach.volt.web.csv.CsvStreamUtil;
+import io.roach.volt.web.csv.ImportScriptUtil;
 import jakarta.validation.Valid;
 
 import static io.roach.volt.csv.model.IdentityType.uuid;
@@ -41,9 +43,6 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class TableController {
     @Autowired
     private DataSource dataSource;
-
-    @Autowired
-    private CsvStreamGenerator csvStreamGenerator;
 
     @GetMapping(value = "/table")
     public ResponseEntity<MessageModel> index() {
@@ -83,7 +82,7 @@ public class TableController {
 
             tableModel.getColumns().addAll(t.getColumns());
             tableModel.setRows(t.getCount());
-            tableModel.setImportInto(csvStreamGenerator.generateImportInto(tableModel));
+            tableModel.setImportInto(ImportScriptUtil.generateImportInto(tableModel));
         } else {
             tableModel.setNote("Table not found: " + table);
 
@@ -122,7 +121,7 @@ public class TableController {
         if (tableModel.isGzip()) {
             bb.header(HttpHeaders.CONTENT_ENCODING, "gzip");
         }
-        return bb.body(outputStream -> csvStreamGenerator.generateCsvStream(tableModel, outputStream));
+        return bb.body(outputStream -> CsvStreamUtil.writeCsvStream(dataSource, tableModel, outputStream));
     }
 
     @GetMapping(value = "/table/schema/{table}",
@@ -158,6 +157,6 @@ public class TableController {
             bb.header(HttpHeaders.CONTENT_ENCODING, "gzip");
         }
 
-        return bb.body(outputStream -> csvStreamGenerator.generateCsvStream(tableModel, outputStream));
+        return bb.body(outputStream -> CsvStreamUtil.writeCsvStream(dataSource, tableModel, outputStream));
     }
 }

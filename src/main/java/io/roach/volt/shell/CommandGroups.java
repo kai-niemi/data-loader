@@ -9,7 +9,7 @@ public abstract class CommandGroups {
 
     public static final String SCHEMA = "(04) Database Schema Commands";
 
-    public static final String SORT = "(05) Sort Commands";
+    public static final String SORT = "(05) Split and Sort Commands";
 
     public static final String GEN = "(06) Generator Commands";
 

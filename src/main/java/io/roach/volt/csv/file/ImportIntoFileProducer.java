@@ -23,7 +23,8 @@ import org.springframework.util.PropertyPlaceholderHelper;
 import org.springframework.util.StringUtils;
 
 import io.roach.volt.csv.event.AbstractEventPublisher;
-import io.roach.volt.csv.event.CompletionEvent;
+import io.roach.volt.csv.event.ProducersCompletedEvent;
+import io.roach.volt.csv.event.ExitEvent;
 import io.roach.volt.csv.event.GenericEvent;
 import io.roach.volt.csv.event.ProducerCompletedEvent;
 import io.roach.volt.csv.model.ApplicationModel;
@@ -54,13 +55,18 @@ public class ImportIntoFileProducer extends AbstractEventPublisher {
     }
 
     @EventListener
-    public void onCompletionEvent(GenericEvent<CompletionEvent> event) throws IOException {
+    public void onCompletionEvent(GenericEvent<ProducersCompletedEvent> event) throws IOException {
         ImportInto importInto = applicationModel.getImportInto();
-        if (importInto == null) {
-            logger.debug("No import-into object found - skipping");
-            return;
+        if (importInto != null) {
+            generate(importInto);
         }
+        if (event.getTarget().isQuit()) {
+            logger.info("Quit on completion - sending exit event");
+            publishEvent(new ExitEvent(0));
+        }
+    }
 
+    public void generate(ImportInto importInto) throws IOException {
         Map<Table, List<Path>> sortedTables = sortByTopologyOrder(completedTables);
 
         List<String> lines = new ArrayList<>();

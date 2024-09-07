@@ -62,7 +62,7 @@ public class DownloadController {
                                 .buildAndExpand()
                                 .toUriString())
                         .withRel(LinkRelations.DOWNLOAD_REL)
-                        .withTitle("Import into SQL file")
+                        .withTitle(importInto.getFile())
                         .withType(MediaType.TEXT_PLAIN_VALUE)
                 );
             }
@@ -107,9 +107,8 @@ public class DownloadController {
     @RequestMapping(value = "/download/{*filename}")
     public ResponseEntity<StreamingResponseBody> downloadFile(
             @PathVariable("filename") String path,
-            @RequestHeader(value = HttpHeaders.ACCEPT_ENCODING,
-                    required = false, defaultValue = "") String acceptEncoding)
-            throws FileNotFoundException {
+            @RequestHeader(value = HttpHeaders.ACCEPT_ENCODING, required = false, defaultValue = "")
+            String acceptEncoding) throws FileNotFoundException {
 
         final Path absolutePath = Paths.get(applicationModel.getOutputPath())
                 .resolve(path.substring(1));

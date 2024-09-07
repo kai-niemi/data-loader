@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -32,7 +31,7 @@ import io.roach.volt.csv.event.AbstractEventPublisher;
 import io.roach.volt.csv.event.CancellationEvent;
 import io.roach.volt.csv.event.GenericEvent;
 import io.roach.volt.csv.event.ProducerProgressEvent;
-import io.roach.volt.csv.event.ResetEvent;
+import io.roach.volt.csv.event.ProducersStartingEvent;
 import io.roach.volt.csv.model.ApplicationModel;
 import io.roach.volt.csv.model.Column;
 import io.roach.volt.csv.model.ImportOption;
@@ -42,7 +41,7 @@ import io.roach.volt.csv.stream.CsvStreamWriterBuilder;
 import io.roach.volt.pubsub.Publisher;
 
 @Component
-public class CsvFileGenerator extends AbstractEventPublisher {
+public class CsvFileProducer extends AbstractEventPublisher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final AtomicBoolean cancellationRequested = new AtomicBoolean();
@@ -62,7 +61,7 @@ public class CsvFileGenerator extends AbstractEventPublisher {
     }
 
     @EventListener
-    public void onGenerateEvent(GenericEvent<ResetEvent> event) {
+    public void onGenerateEvent(GenericEvent<ProducersStartingEvent> event) {
         cancellationRequested.set(false);
     }
 
@@ -98,7 +97,9 @@ public class CsvFileGenerator extends AbstractEventPublisher {
 
         try {
             startLatch.countDown();
-            logger.info("Counting down latch - remaining %d".formatted(startLatch.getCount()));
+
+            logger.debug("Counting down latch - remaining %d".formatted(startLatch.getCount()));
+
             startLatch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

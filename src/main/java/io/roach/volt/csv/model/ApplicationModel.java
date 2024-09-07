@@ -8,8 +8,6 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import jakarta.validation.constraints.NotNull;
 
 @Validated
@@ -20,7 +18,6 @@ public class ApplicationModel {
 
     private List<Table> tables = new ArrayList<>();
 
-    @JsonProperty("import-into")
     private ImportInto importInto;
 
     private Map<ImportOption, String> options = new LinkedHashMap<>();

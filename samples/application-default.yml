@@ -3,7 +3,7 @@ model:
     delimiter: ","
     fields_enclosed_by: '(empty)'
 
-  import-info:
+  importInto:
     options:
       delimiter: ";"
       fields_enclosed_by: '"'
@@ -17,9 +17,6 @@ model:
   tables:
     - name: "customer"
       count: "100"
-      options:
-        delimiter: "#"
-        fields_enclosed_by: '@'
       columns:
         - name: "id"
           gen:

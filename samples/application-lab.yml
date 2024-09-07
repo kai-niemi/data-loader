@@ -1,5 +1,5 @@
 model:
-  import-into:
+  importInto:
     options:
       delimiter: ","
       skip: "1"
@@ -28,7 +28,7 @@ model:
           expression: "randomString(25)"
 
     - name: "orders"
-      count: "10k"
+      count: "10m"
       columns:
         - name: "id"
           gen:
@@ -62,7 +62,7 @@ model:
           each:
             name: "orders"
             column: "id"
-            multiplier: 2
+            multiplier: 1
         - name: "item_pos"
           gen:
             type: "sequence"

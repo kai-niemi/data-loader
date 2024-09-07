@@ -11,7 +11,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import io.roach.volt.csv.event.AbstractEventPublisher;
-import io.roach.volt.csv.event.CompletionEvent;
+import io.roach.volt.csv.event.ProducersCompletedEvent;
 import io.roach.volt.csv.event.GenericEvent;
 import io.roach.volt.csv.event.ProducerCancelledEvent;
 import io.roach.volt.csv.event.ProducerCompletedEvent;
@@ -38,14 +38,12 @@ public class ProducerLifecycleListener extends AbstractEventPublisher {
         activeTables.add(startedEvent.getTable());
 
         if (startedEvent.isBoundedCount()) {
-            logger.info("Started generating '%s': %,d rows using '%s'".formatted(
+            logger.info("Started generating '%s': %,d rows".formatted(
                     startedEvent.getPath(),
-                    startedEvent.getTable().getFinalCount(),
-                    startedEvent.getProducerInfo()));
+                    startedEvent.getTable().getFinalCount()));
         } else {
-            logger.info("Started generating '%s': ∞ rows using '%s'".formatted(
-                    startedEvent.getPath(),
-                    startedEvent.getProducerInfo()));
+            logger.info("Started generating '%s': ∞ rows using".formatted(
+                    startedEvent.getPath()));
         }
     }
 
@@ -63,11 +61,7 @@ public class ProducerLifecycleListener extends AbstractEventPublisher {
     }
 
     @EventListener
-    public synchronized void onCompletedEvent(GenericEvent<ProducerCompletedEvent> event) {
-        if (activeTables.isEmpty()) {
-            return;
-        }
-
+    public void onCompletedEvent(GenericEvent<ProducerCompletedEvent> event) {
         activeTables.remove(event.getTarget().getTable());
 
         logger.info("Completed generating '%s': %,d rows in %s (%.0f/s avg) (%s) - %d in queue".formatted(
@@ -78,10 +72,6 @@ public class ProducerLifecycleListener extends AbstractEventPublisher {
                 ByteUtils.byteCountToDisplaySize(event.getTarget().getPath().toFile().length()),
                 activeTables.size())
         );
-
-        if (activeTables.isEmpty()) {
-            publishEvent(new CompletionEvent());
-        }
     }
 
     @EventListener
@@ -93,12 +83,12 @@ public class ProducerLifecycleListener extends AbstractEventPublisher {
     @EventListener
     public void onFailedEvent(GenericEvent<ProducerFailedEvent> event) {
         logger.error("Failed to generating CSV for table '%s'"
-                .formatted(event.getTarget().getTable().getName()),
+                        .formatted(event.getTarget().getTable().getName()),
                 event.getTarget().getCause());
     }
 
     @EventListener
-    public void onCompletionEvent(GenericEvent<CompletionEvent> event) {
+    public void onCompletionEvent(GenericEvent<ProducersCompletedEvent> event) {
         logger.info("Successfully produced all CSV file(s)");
     }
 }

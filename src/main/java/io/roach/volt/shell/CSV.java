@@ -13,7 +13,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,22 +31,23 @@ import org.springframework.shell.standard.ShellOption;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.roach.volt.csv.ConfigurationException;
-import io.roach.volt.csv.file.CsvFileGenerator;
-import io.roach.volt.csv.file.ChunkProducerQualifier;
 import io.roach.volt.csv.event.AbstractEventPublisher;
 import io.roach.volt.csv.event.CancellationEvent;
-import io.roach.volt.csv.event.CompletionEvent;
+import io.roach.volt.csv.event.ProducersCompletedEvent;
 import io.roach.volt.csv.event.ExitEvent;
 import io.roach.volt.csv.event.GenericEvent;
 import io.roach.volt.csv.event.ProducerCancelledEvent;
 import io.roach.volt.csv.event.ProducerCompletedEvent;
 import io.roach.volt.csv.event.ProducerFailedEvent;
 import io.roach.volt.csv.event.ProducerStartedEvent;
-import io.roach.volt.csv.event.ResetEvent;
+import io.roach.volt.csv.event.ProducersStartingEvent;
+import io.roach.volt.csv.file.ChunkProducerQualifier;
+import io.roach.volt.csv.file.ChunkProducers;
+import io.roach.volt.csv.file.CsvFileProducer;
 import io.roach.volt.csv.model.ApplicationModel;
+import io.roach.volt.csv.model.ImportInto;
 import io.roach.volt.csv.model.Root;
 import io.roach.volt.csv.model.Table;
-import io.roach.volt.csv.file.ChunkProducers;
 import io.roach.volt.shell.support.AnsiConsole;
 import io.roach.volt.util.AsciiArt;
 
@@ -67,9 +67,7 @@ public class CSV extends AbstractEventPublisher {
     private ObjectMapper yamlObjectMapper;
 
     @Autowired
-    private CsvFileGenerator csvFileGenerator;
-
-    private final AtomicBoolean quitOnCompletion = new AtomicBoolean();
+    private CsvFileProducer csvFileProducer;
 
     private final List<Path> activeProducers
             = Collections.synchronizedList(new ArrayList<>());
@@ -107,9 +105,11 @@ public class CSV extends AbstractEventPublisher {
     }
 
     @EventListener
-    public void onCompletionEvent(GenericEvent<CompletionEvent> event) {
+    public void onCompletionEvent(GenericEvent<ProducersCompletedEvent> event) {
         activeProducers.clear();
-        if (quitOnCompletion.get()) {
+
+        ImportInto importInto = applicationModel.getImportInto();
+        if (importInto == null && event.getTarget().isQuit()) {
             logger.info("Quit on completion - sending exit event");
             publishEvent(new ExitEvent(0));
         }
@@ -183,32 +183,29 @@ public class CSV extends AbstractEventPublisher {
             throw new ConfigurationException("Base path is not writable - check permissions: " + basePath);
         }
 
-        quitOnCompletion.set(quit);
+        publishEvent(new ProducersStartingEvent());
 
-        publishEvent(new ResetEvent());
-
-        // Have all producers initialize (setting up proper subscriptions etc) and then wait on a given go signal
         final CountDownLatch startLatch = new CountDownLatch(applicationModel.getTables().size());
-
         final List<Task> futures = new ArrayList<>();
 
         applicationModel.getTables().forEach(table -> {
             Path path = basePath.resolve("%s%s%s".formatted(prefix, table.getName(), suffix));
 
             Task task = new Task();
-            task.future = csvFileGenerator.start(table, path, startLatch);
             task.table = table;
             task.path = path;
+            task.future = csvFileProducer.start(table, path, startLatch);
 
             futures.add(task);
 
-            publishEvent(new ProducerStartedEvent(table, path, ""));
+            publishEvent(new ProducerStartedEvent(table, path));
         });
 
         while (!futures.isEmpty()) {
             Task t = futures.remove(0);
             try {
                 Pair<Integer, Duration> result = t.future.join();
+
                 publishEvent(new ProducerCompletedEvent(t.table, t.path)
                         .setDuration(result.getSecond())
                         .setRows(result.getFirst())
@@ -222,6 +219,8 @@ public class CSV extends AbstractEventPublisher {
                 futures.forEach(task -> task.future.cancel(true));
             }
         }
+
+        publishEvent(new ProducersCompletedEvent(quit));
     }
 
     private static class Task {

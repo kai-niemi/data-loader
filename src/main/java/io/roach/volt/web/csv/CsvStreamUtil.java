@@ -1,10 +1,10 @@
-package io.roach.volt.web;
+package io.roach.volt.web.csv;
 
 import java.io.BufferedWriter;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.UndeclaredThrowableException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -16,12 +16,7 @@ import javax.sql.DataSource;
 
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ExecutionContext;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import io.roach.volt.csv.file.ChunkProducer;
-import io.roach.volt.csv.file.StreamingChunkProducer;
 import io.roach.volt.csv.generator.ValueGenerator;
 import io.roach.volt.csv.generator.ValueGenerators;
 import io.roach.volt.csv.model.Column;
@@ -31,35 +26,20 @@ import io.roach.volt.csv.stream.CsvStreamWriterBuilder;
 import io.roach.volt.expression.ExpressionRegistry;
 import io.roach.volt.expression.ExpressionRegistryBuilder;
 import io.roach.volt.expression.FunctionDef;
+import io.roach.volt.web.BadRequestException;
+import io.roach.volt.web.TableModel;
 
-@Component
-public class CsvStreamGenerator {
+public abstract class CsvStreamUtil {
+    private CsvStreamUtil() {
+    }
+
     private static final Predicate<Column> COLUMN_INCLUDE_PREDICATE
             = column -> (column.isHidden() == null || !column.isHidden())
             && column.getEach() == null && column.getRef() == null;
 
-    @Autowired
-    private DataSource dataSource;
-
-    public String generateImportInto(TableModel tableModel) {
-        String uri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .pathSegment("table", "schema", tableModel.getTable())
-                .buildAndExpand()
-                .toUriString();
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("IMPORT INTO ")
-                .append(tableModel.getTable())
-                .append("(")
-                .append(tableModel.getColumns()
-                        .stream()
-                        .map(Column::getName)
-                        .collect(Collectors.joining(",")))
-                .append(") CSV DATA ( '").append(uri).append("');");
-        return sb.toString();
-    }
-
-    public void generateCsvStream(TableModel tableModel, OutputStream outputStream) {
+    public static void writeCsvStream(DataSource dataSource,
+                                      TableModel tableModel,
+                                      OutputStream outputStream) {
         Table table = new Table();
         table.setName(tableModel.getTable());
         table.setCount(tableModel.getRows());
@@ -77,16 +57,13 @@ public class CsvStreamGenerator {
         final AtomicInteger currentRow = new AtomicInteger();
 
         final Map<Column, ValueGenerator<?>> columnGenerators
-                = createColumnGenerators(table, List.of(FunctionDef.builder()
+                = createColumnGenerators(dataSource, table, List.of(FunctionDef.builder()
                 .withCategory("other")
                 .withId("rowNumber")
-                .withDescription("Returns current row number in CSV file.")
+                .withDescription("Returns current row number.")
                 .withReturnValue(Integer.class)
                 .withFunction(args -> currentRow.get())
                 .build()));
-
-        final ChunkProducer<String, Object> chunkProducer
-                = new StreamingChunkProducer(table, columnGenerators, COLUMN_INCLUDE_PREDICATE);
 
         try (CsvStreamWriter<Map<String, Object>> writer = new CsvStreamWriterBuilder<Map<String, Object>>()
                 .withDelimiter(tableModel.getDelimiter())
@@ -109,17 +86,22 @@ public class CsvStreamGenerator {
 
             writer.open(new ExecutionContext());
 
-            chunkProducer.produceChunks((values, rowEstimate) -> {
-                writer.write(Chunk.of(values));
+            for (int i = 0; i < table.getFinalCount(); i++) {
+                Map<String, Object> orderedTuples = new LinkedHashMap<>();
+                for (Column col : table.filterColumns(COLUMN_INCLUDE_PREDICATE)) {
+                    orderedTuples.put(col.getName(), columnGenerators.get(col).nextValue());
+                }
+                writer.write(Chunk.of(orderedTuples));
                 currentRow.incrementAndGet();
-                return true;
-            });
+            }
         } catch (Exception e) {
-            throw new UndeclaredThrowableException(e);
+            throw new CsvStreamingException(e);
         }
     }
 
-    private Map<Column, ValueGenerator<?>> createColumnGenerators(Table table, List<FunctionDef> functionDefs) {
+    private static Map<Column, ValueGenerator<?>> createColumnGenerators(DataSource dataSource,
+                                                                         Table table,
+                                                                         List<FunctionDef> functionDefs) {
         ExpressionRegistry registry = ExpressionRegistryBuilder.build(dataSource);
         functionDefs.forEach(registry::addFunction);
 

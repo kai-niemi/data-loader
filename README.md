@@ -13,6 +13,7 @@
   * [Generate Configuration](#generate-configuration)
     * [Preparation](#preparation)
     * [Generating CSV Files](#generating-csv-files)
+    * [Importing CSV Files](#importing-csv-files)
     * [Generating Configuration](#generating-configuration)
 * [Configuration](#configuration)
   * [Model](#model)
@@ -136,7 +137,7 @@ database schema (see next section).
 
 Generate the CSV files using `csv-generate` shell command:
 
-    echo "csv-generate" > cmd-gen.txt && echo "quit" >> cmd-gen.txt
+    echo "csv-generate --quit" > cmd-gen.txt
     java -jar target/volt.jar @cmd-gen.txt
 
 Upon completion, the `.output` directory will now have the following files:
@@ -151,14 +152,14 @@ The `.output/*.csv` files contains random generated CSV data based on the
 YAML configuration. The `.output/import.sql` file contains `IMPORT INTO` SQL 
 statements in topological order inferred from the table relationships.
 
-    cat .output/import.sql
+### Importing CSV Files
 
-If you run volt in the http mode, you can have CockroachDB consume the 
+When you run volt with the http mode enabled, CockroachDB can consume the 
 CSV files using either `IMPORT` or `COPY`:
 
     java -jar target/volt.jar --http
 
-Import all the CSVs in the correct order:
+Import all the CSVs using `IMPORT INTO`:
 
     cockroach sql --insecure --host=localhost --database volt < .output/import.sql
 
@@ -166,17 +167,16 @@ Import all the CSVs in the correct order:
 
     CANCEL JOBS (WITH x AS (SHOW JOBS) SELECT job_id FROM x WHERE job_type='IMPORT' and status != 'failed');
 
-Since `IMPORT INTO` takes the tables offline, you can alternatively 
-use `COPY .. FROM` instead:
+Since `IMPORT INTO` takes the tables offline, you can alternatively use `COPY .. FROM` instead:
 
-Example using local files:
+Example commands using local files:
 
     echo "--insecure --database volt" > credentials.txt
     echo "COPY customer FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/customer.csv | cockroach sql $( cat credentials.txt )
     echo "COPY purchase_order FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/purchase_order.csv | cockroach sql $( cat credentials.txt )
     echo "COPY purchase_order_item FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/purchase_order_item.csv | cockroach sql $( cat credentials.txt )
 
-Example using volt as HTTP proxy to the local files:
+Example commands using volt as HTTP proxy for the local files:
 
     echo "COPY customer FROM STDIN WITH CSV DELIMITER ',' HEADER;" > header.csv && curl http://localhost:8090/customer.csv | cat header.csv - | cockroach sql $( cat credentials.txt )
     echo "COPY purchase_order FROM STDIN WITH CSV DELIMITER ',' HEADER;" > header.csv && curl http://localhost:8090/purchase_order.csv | cat header.csv - | cockroach sql $( cat credentials.txt )
@@ -184,20 +184,58 @@ Example using volt as HTTP proxy to the local files:
 
 ### Generating Configuration
 
-Let's create the configuration YAML file from a schema using the 
-shell `db-export` command followed by a `quit` that exits the app:
+The shell command `db-export` will generate configuration YAML file from a database.
 
-    echo "db-export" > cmd-export.txt && echo "quit" >> cmd-export.txt
+    echo "db-export --quit" > cmd-export.txt
     java -jar target/volt.jar @cmd-export.txt
 
 Check out the YAML file:
     
     cat .output/application-default.yml
 
-This command makes a best-effort to produce the CSV table layouts and relations
-by introspection and following foreign key relations. It should print content 
-similar to [application-default.yml](samples/application-default.yml)
-although without some of the tailored random functions and row counts.
+This command makes a best-effort to produce the CSV table layouts and relations by introspection 
+and following foreign key relations. It should print content similar to 
+[application-default.yml](samples/application-default.yml). You may need to edit the file
+to use more appropriate random functions and more.
+
+### Sorting CSV Files
+
+Ideally when importing a large CSV file to CockroachDB, it should be split into smaller pieces 
+(one file per node) and each split should be sorted based on how its stored in the database. 
+That saves sorting effort for the database, drastically speeding up the time it takes to
+ingest the data. If for example the data is stored by an alphabetic primary key, then the 
+CSV should be sorted in the same way. 
+
+There are built-in shell commands for both splitting and sorting large CSV files 
+using the [external merge sort](https://en.wikipedia.org/wiki/External_sorting) algorithm. 
+
+The `sort` command will split a single CSV file, sort each part and then merge the 
+sorted parts back:
+
+    sort --inputFile ./output/orders.csv
+
+Now you have the `orders.csv` file sorted by all columns by default. The sort command 
+doesn't know about the storage order, so you can instruct which columns to sort 
+by rather than include all by using the `--columns` parameter.
+
+Next step would be to split the sorted file and adjust your import command to 
+point at each part:
+
+    split --inputFile ./output/orders.csv
+
+Lastly, edit the `.output/import.sql` file accordingly:
+
+    IMPORT INTO orders(id,payment_method_id,bill_address1,bill_address2,bill_city,bill_country_code,status,amount,currency,version)
+    CSV DATA (
+     'http://localhost:8090/orders-001.csv',
+     'http://localhost:8090/orders-002.csv',
+     'http://localhost:8090/orders-003.csv',
+     'http://localhost:8090/orders-004.csv',
+     'http://localhost:8090/orders-005.csv',
+     'http://localhost:8090/orders-006.csv',
+     'http://localhost:8090/orders-007.csv',
+     'http://localhost:8090/orders-008.csv'
+    ) WITH delimiter = ',', skip = '1', allow_quoted_null = 'null', fields_enclosed_by = '"';
 
 # Configuration
 
@@ -211,14 +249,14 @@ Top-level entry in `application<-profile>.yml`.
       tables:
       outputPath:
       options:
-      import-into:
+      importInto:
 
 | Field Name  | Optional | Default | Description                                                                                                                  |
 |-------------|----------|---------|------------------------------------------------------------------------------------------------------------------------------|
 | tables      | No       | -       | Collection of tables to create CSV files for.                                                                                |
 | outputPath  | Yes      | .output | Output directory for generated files (created on demand).                                                                    |
 | options     | Yes      | -       | CSV format options, reusing the [IMPORT INTO](https://www.cockroachlabs.com/docs/stable/import-into#import-options) options. |
-| import-into | Yes      | -       | Import-into SQL file settings (skipped if omitted).                                                                          |
+| importInto  | Yes      | -       | Import-into SQL file settings (skipped if omitted).                                                                          |
 
 ### Tables
 
@@ -533,7 +571,7 @@ import into SQL file.
 
     model:
       ...
-      import-into:
+      importInto:
         options:
         file: "import.sql"
         prefix: "http://${local-ip}:8090/"
@@ -548,7 +586,7 @@ import into SQL file.
 
     model:
       ...
-      import-into:
+      importInto:
         options:
           delimiter: ","
           skip: "1"

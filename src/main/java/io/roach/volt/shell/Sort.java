@@ -33,23 +33,21 @@ public class Sort extends AbstractEventPublisher {
     @Autowired
     private AnsiConsole console;
 
-    @ShellMethod(value = "Sort a CSV file in lexicographical order", key = {"sort"})
+    @ShellMethod(value = "Split and merge sort a CSV file in lexicographical order", key = {"sort"})
     public void sort(
             @ShellOption(help = "input file path",
-                    defaultValue = ShellOption.NONE,
                     valueProvider = AnotherFileValueProvider.class) String inputFile,
             @ShellOption(help = "output file path (derived from input path if omitted)",
                     defaultValue = ShellOption.NULL,
                     valueProvider = AnotherFileValueProvider.class) String outputFile,
-            @ShellOption(help = "comma separated list of CSV column(s) to sort by (zero-based). If omitted, all columns are included.",
-                    defaultValue = ShellOption.NULL) List<Integer> sort,
+            @ShellOption(help = "comma separated list of CSV column(s) to sort by (one-based). If omitted, all columns are included.",
+                    defaultValue = ShellOption.NULL) List<Integer> columns,
             @ShellOption(help = "line comparator type",
                     defaultValue = "auto",
                     valueProvider = EnumValueProvider.class) ComparatorType comparatorType,
             @ShellOption(help = "column delimiter", defaultValue = ",") String delimiter,
             @ShellOption(help = "number of chunks or files (-1 denotes number of host vCPU:s)", defaultValue = "-1")
             int chunks,
-
             @ShellOption(help = "lines to skip from input file denoting header (included in sorted output)", defaultValue = "0")
             int linesToSkip,
             @ShellOption(help = "keep original input file after completion",
@@ -64,7 +62,7 @@ public class Sort extends AbstractEventPublisher {
                 .withLinesToSkip(linesToSkip)
                 .withInputFile(Paths.get(inputFile))
                 .withOutputFile(outputFile != null ? Paths.get(outputFile) : null)
-                .withOrderByColumns(sort != null ? sort : List.of())
+                .withOrderByColumns(columns != null ? columns : List.of())
                 .withComparator(comparatorType)
                 .withDelimiter(delimiter)
                 .withReplace(!skipReplace)

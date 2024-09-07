@@ -1,12 +1,5 @@
 package io.roach.volt.mergesort;
 
-import io.roach.volt.util.ByteUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.output.CountingOutputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.Assert;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Closeable;
@@ -21,7 +14,6 @@ import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -31,6 +23,14 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.output.CountingOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.Assert;
+
+import io.roach.volt.util.ByteUtils;
 
 /**
  * External merge sort utility for splitting, sorting and merging CSV files for the purpose
@@ -93,13 +93,9 @@ public class ExternalMergeSort {
                 if (this.orderBy.contains(index)) {
                     throw new IllegalArgumentException("Duplicate index: " + index);
                 }
-                this.orderBy.add(index);
+                this.orderBy.add(index - 1);
             });
             return this;
-        }
-
-        public Builder withOrderByColumns(Integer... indexes) {
-            return withOrderByColumns(Arrays.asList(indexes));
         }
 
         public Builder withDelimiter(String delimiter) {
@@ -277,7 +273,9 @@ public class ExternalMergeSort {
         }
 
         logger.info("Counting lines in %s".formatted(inputFile));
+
         long totalLines = calculateLines(inputFile);
+
         logger.info("Total lines in %s is %,d".formatted(inputFile, totalLines));
 
         long linesPerChunk = totalLines / chunks;
