@@ -15,6 +15,7 @@
     * [Generating CSV Files](#generating-csv-files)
     * [Importing CSV Files](#importing-csv-files)
     * [Generating Configuration](#generating-configuration)
+    * [Sorting CSV Files](#sorting-csv-files)
 * [Configuration](#configuration)
   * [Model](#model)
     * [Tables](#tables)
