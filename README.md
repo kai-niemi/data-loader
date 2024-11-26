@@ -1,4 +1,4 @@
-[![Java CI with Maven](https://github.com/cloudneutral/volt/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/cloudneutral/volt/actions/workflows/maven.yml)
+[![Java CI with Maven](https://github.com/kai-niemi/volt/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/kai-niemi/volt/actions/workflows/maven.yml)
        
 <!-- TOC -->
 * [About Volt](#about-volt)
@@ -60,7 +60,7 @@ Main use cases:
 
 # Quick Start 
 
-Either download the [release jar](https://github.com/cloudneutral/volt/releases) or build it locally.
+Either download the [release jar](https://github.com/kai-niemi/volt/releases) or build it locally.
 
 ## Prerequisites
 

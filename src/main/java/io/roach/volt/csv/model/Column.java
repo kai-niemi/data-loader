@@ -1,6 +1,5 @@
 package io.roach.volt.csv.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import jakarta.validation.constraints.NotNull;
@@ -126,15 +125,15 @@ public class Column {
     @Override
     public String toString() {
         return "Column{" +
-                "constant='" + constant + '\'' +
-                ", name='" + name + '\'' +
-                ", expression='" + expression + '\'' +
-                ", each=" + each +
-                ", ref=" + ref +
-                ", range=" + range +
-                ", gen=" + gen +
-                ", set=" + set +
-                ", hidden=" + hidden +
-                '}';
+               "constant='" + constant + '\'' +
+               ", name='" + name + '\'' +
+               ", expression='" + expression + '\'' +
+               ", each=" + each +
+               ", ref=" + ref +
+               ", range=" + range +
+               ", gen=" + gen +
+               ", set=" + set +
+               ", hidden=" + hidden +
+               '}';
     }
 }

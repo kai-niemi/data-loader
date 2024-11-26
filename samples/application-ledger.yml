@@ -1,107 +1,89 @@
+spring:
+  datasource:
+    url: "jdbc:postgresql://localhost:26257/ledger?sslmode=disable"
+    username: "root"
 model:
-  importInto:
-    options:
-      delimiter: ","
-      skip: "1"
-      allow_quoted_null: "null"
-      fields_enclosed_by: '"'
-    file: "import.sql"
-    prefix: "http://${local-ip}:8090/"
-  output-path: .output
+  outputPath: ".output"
   tables:
-    - name: customer
-      count: 10
+    - name: "account"
+      count: "1M"
       columns:
-        - name: id
-          expression: "randomUUID()"
-        - name: city
+        - name: "id"
+          gen:
+            type: "uuid"
+        - name: "city"
           expression: "randomCity()"
-        - name: name
-          expression: "randomFullName()"
-        - name: email
-          expression: "randomEmail()"
-    - name: account
-      count: 100
+        - name: "balance"
+          expression: "randomBigDecimal(100.00,5000.00,2)"
+        - name: "currency"
+          expression: "selectRandom('USD','SEK', 'EUR')"
+        - name: "name"
+          expression: "randomString(12)"
+        - name: "description"
+          expression: "randomString(24)"
+        - name: "type"
+          expression: "selectRandom('Revenue','Asset','Liability','Equity','Expense')"
+        - name: "closed"
+          expression: "false"
+        - name: "allow_negative"
+          expression: "0"
+        - name: "updated_at"
+          expression: "randomDateTime()"
+    - name: "transfer"
+      count: "500k"
       columns:
-        - name: id
-          expression: "randomUUID()"
-        - name: customer_id
-          ref:
-            name: customer
-            column: id
-        - name: customer_name
-          ref:
-            name: customer
-            column: name
-        - name: balance
-          expression: "randomBigDecimal(0.00,100.00)"
-        - name: currency
-          expression: "randomCurrency()"
-        - name: description
-          expression: "randomString(256)"
-        - name: account_type
-          expression: "selectRandom('A', 'L', 'E', 'R', 'C')"
-        - name: closed
-          expression: "rowNumber() % 2"
-        - name: allow_negative
-          expression: "if rowNumber() % 100 == 0 then 1 else 0"
-        - name: region
-          expression: "selectRandom('eu-1', 'eu-2', 'eu-3', 'us-1', 'us-2')"
-    - name: transaction
-      count: 1000
+        - name: "id"
+          gen:
+            type: "uuid"
+        - name: "city"
+          expression: "randomCity()"
+        - name: "booking_date"
+          expression: "randomDate()"
+        - name: "transfer_date"
+          expression: "randomDate()"
+        - name: "transfer_type"
+          expression: "selectRandom('Refund','Chargeback','Bank','Payment','Grant','Fee')"
+    - name: "transfer_item"
       columns:
-        - name: id
-          expression: "randomUUID()"
-        - name: booking_date
-          range:
-            type: date
-            from: "2023-12-01"
-            to: "2024-12-01"
-            step: 1
-            step-unit: DAYS
-        - name: transaction_type
-          expression: "selectRandom('A', 'B', 'C', 'D', 'E')"
-        - name: region
-          expression: "selectRandom('eu-1', 'eu-2', 'eu-3', 'us-1', 'us-2')"
-    - name: transaction_item
-      columns:
-        - name: account_id
+        - name: "transfer_id"
           each:
+            name: "transfer"
+            column: "id"
+            multiplier: 2
+        - name: "account_id"
+          ref:
             name: account
-            column: id
-        - name: transaction_id
-          each:
-            name: transaction
-            column: id
-        - name: amount
-          expression: "randomBigDecimal(10.00,50.00)"
-        - name: currency
+            column: "id"
+        - name: "item_pos"
+          gen:
+            type: "sequence"
+            from: "1"
+            to: "2"
+            step: 1
+        - name: "city"
+          expression: "randomCity()"
+        - name: "amount"
+          expression: "10.00"
+        - name: "currency"
           ref:
             name: account
             column: currency
-        - name: customer_id
-          hidden: true
+        - name: "note"
+          expression: "randomString(12)"
+        - name: "running_balance"
           ref:
             name: account
-            column: customer_id
-        - name: note
-          expression: "randomString(256)"
-        - name: running_balance
-          expression: "randomBigDecimal(10.00,50.00)"
-    ####################################
-    - name: transaction_item_history
-      columns:
-        - name: account_id
-          each:
-            name: transaction_item
-            column: account_id
-        - name: transaction_id
-          ref:
-            name: transaction_item
-            column: transaction_id
-        - name: customer_id
-          ref:
-            name: transaction_item
-            column: customer_id
-        - name: note
-          expression: "randomString(256)"
+            column: balance
+  importInto:
+    options:
+      delimiter: ","
+      fields_enclosed_by: "(empty)"
+      skip: "1"
+      allow_quoted_null: "null"
+    file: "import.sql"
+    prefix: "http://${local-ip}:8090/"
+  options:
+    delimiter: ","
+    fields_enclosed_by: "(empty)"
+    skip: "1"
+    allow_quoted_null: "null"

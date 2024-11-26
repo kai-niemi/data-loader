@@ -150,7 +150,7 @@ public class CSV extends AbstractEventPublisher {
         if (applicationModel.getTables().isEmpty()) {
             console.red("No tables found in current model (bad profile name?) %s."
                     + "Use the schema export command 'db-export' or create an application model YAML file.\n"
-                    + "See: https://github.com/cloudneutral/volt/README.md"
+                    + "See: https://github.com/kai-niemi/volt/README.md"
                     .formatted(AsciiArt.shrug())).nl();
         }
     }
