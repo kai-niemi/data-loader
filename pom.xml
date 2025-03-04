@@ -5,13 +5,13 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.0</version>
+        <version>3.4.3</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
     <groupId>io.roach.volt</groupId>
     <artifactId>volt</artifactId>
-    <version>1.1.1-SNAPSHOT</version>
+    <version>1.2.0-SNAPSHOT</version>
 
     <name>Volt - CSV Generator</name>
 
@@ -24,7 +24,7 @@
         <groups>unit-test</groups>
 
         <antlr.version>4.13.2</antlr.version>
-        <spring-shell.version>3.3.3</spring-shell.version>
+        <spring-shell.version>3.4.0</spring-shell.version>
     </properties>
 
     <dependencies>
@@ -86,7 +86,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
-            <version>2.17.2</version>
+            <version>2.18.0</version>
         </dependency>
         <dependency>
             <groupId>net.ttddyy</groupId>
@@ -96,7 +96,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.3</version>
+            <version>42.7.5</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -201,7 +201,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-clean-plugin</artifactId>
-                <version>3.4.0</version>
+                <version>3.4.1</version>
                 <configuration>
                     <failOnError>false</failOnError>
                     <filesets>
@@ -262,7 +262,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.4.0</version>
+                <version>3.5.2</version>
                 <configuration>
                     <groups>${groups}</groups>
                 </configuration>
@@ -291,6 +291,7 @@
                 </repository>
             </repositories>
         </profile>
+
         <profile>
             <id>deep-clean</id>
             <build>
