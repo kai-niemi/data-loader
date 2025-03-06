@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: "jdbc:postgresql://localhost:26257/roach_bank?sslmode=disable"
+    url: "jdbc:postgresql://localhost:26257/bank?sslmode=disable"
     username: "root"
 model:
   importInto:

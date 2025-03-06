@@ -369,15 +369,15 @@ type `expr-functions` in the shell and TAB for code completion.
         - name: "name"
           expression: "plus(currentDate(), randomInt(1,30), 'DAYS')"
           
-| Field Name | Optional | Default | Description                                                                                                                    |
-|------------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------|
-| expression | Yes      | -       | A binary expression following the [ExpressionParser](src/main/resources/io/roach/volt/expression/ExpressionParser.g4) grammar. |
+| Field Name | Optional | Default | Description                                                                                                                          |
+|------------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------|
+| expression | Yes      | -       | A binary expression following the [ExpressionParser](src/main/resources/io/cockroachdb/volt/expression/ExpressionParser.g4) grammar. |
 
 **Remarks:**
 
 The logical expressions and support basic arithmetics, string manipulation, function calls and simple 
 conditional logic using `IF <condition> THEN <outcome> ELSE <other-outcome>`. For some examples, 
-see [ExpressionGrammarTest.java](src/test/java/io/roach/volt/expression/ExpressionGrammarTest.java).
+see [ExpressionGrammarTest.java](src/test/java/io/cockroachdb/volt/expression/ExpressionGrammarTest.java).
 
 ---
 

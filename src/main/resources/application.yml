@@ -42,7 +42,7 @@ spring:
     locale: en_US
   ##################################
   datasource:
-    url: jdbc:postgresql://localhost:26257/volt?sslmode=disable
+    url: jdbc:postgresql://localhost:26257/defaultdb?sslmode=disable
     driver-class-name: org.postgresql.Driver
     username: root
     password:
