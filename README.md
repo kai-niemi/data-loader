@@ -37,29 +37,27 @@
 # About Data Loader
 
 <img align="left" src="logo.png" width="128" /> A flexible CSV file and stream 
-generator targeting CockroachDB IMPORT and COPY data imports for load testing. 
+generator targeting CockroachDB IMPORT and COPY imports. It generates CSV files 
+(or streams over HTTP) based on a YAML configuration, which in turn can be 
+generated from a database schema to save time.
 
-It generates CSV files (or streams over HTTP) based on a YAML configuration, 
-which in turn can be generated from a database schema.
+The memory footprint is low since it doesn't build much state during data generation,
+making it a good fit for initial data loading for load/stress tests. The only exception 
+being [cartesian or cross product](https://en.wikipedia.org/wiki/Join_(SQL)#Cross_join) multi-table relations, where in-memory aggregation 
+is needed before writing CSV data (see [Each](#each) below for details). 
+For more common `one-to-many` relationships, it uses circular 
+bounded buffers to constrain memory usage to a minimum.
 
-The memory footprint is low also when generating large CSVs since it doesn't 
-build state during data generation. The exception being 
-[cartesian or cross product](https://en.wikipedia.org/wiki/Join_(SQL)#Cross_join)
-multi-table relations, where in-memory aggregation needs to be done before writing 
-the CSV data (see [Each](#each) below for details). For typical one-to-many 
-relationships, it uses circular bounded buffers to constrain memory usage to 
-a minimum.
+Main use cases include:
+
+- Generate large CSV files for the purpose of functional / load testing
+- Support `IMPORT INTO` and `COPY FROM` commands via HTTP endpoint
+- Merge-sort large CSV files
 
 It comes with a command-line interface, an interactive shell and a Hypermedia/REST API 
 that supports CockroachDB `IMPORT INTO` and `COPY FROM` commands for consuming CSV files. 
 The REST API can also stream CSV data on demand without actually writing anything 
 to local files.
-
-Main use cases:
-
-- Generate large CSV files for the purpose of functional / load testing
-- Support `IMPORT INTO` and `COPY FROM` commands via HTTP endpoint
-- Merge-sort large CSV files
 
 # Quick Start 
 
