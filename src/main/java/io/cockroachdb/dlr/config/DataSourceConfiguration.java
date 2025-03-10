@@ -19,7 +19,7 @@ import java.sql.Connection;
 
 @Configuration
 public class DataSourceConfiguration {
-    public static final String SQL_TRACE_LOGGER = "io.cockroachdb.csv.SQL_TRACE";
+    public static final String SQL_TRACE_LOGGER = "io.cockroachdb.dlr.SQL_TRACE";
 
     @Bean
     @Primary
@@ -64,7 +64,7 @@ public class DataSourceConfiguration {
                 .type(HikariDataSource.class)
                 .build();
         ds.setAutoCommit(true);
-        ds.addDataSourceProperty("application_name", "dlr");
+        ds.addDataSourceProperty("ApplicationName", "dlr");
         return ds;
     }
 }
