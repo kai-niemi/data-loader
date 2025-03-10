@@ -13,16 +13,6 @@
                     <id>central</id>
                     <url>https://repo1.maven.org/maven2</url>
                 </repository>
-                <repository>
-                    <id>github</id>
-                    <url>https://maven.pkg.github.com/cockroachdb/*</url>
-                    <snapshots>
-                        <enabled>true</enabled>
-                    </snapshots>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                </repository>
             </repositories>
         </profile>
     </profiles>

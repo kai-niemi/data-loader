@@ -9,21 +9,21 @@
     <logger name="org.springframework.batch" level="INFO" additivity="true"/>
 
     <springProfile name="verbose">
-        <logger name="io.cockroachdb.volt" level="DEBUG" additivity="false">
+        <logger name="io.cockroachdb.dlr" level="DEBUG" additivity="false">
             <appender-ref ref="CONSOLE"/>
         </logger>
 
-        <logger name="io.cockroachdb.volt.SQL_TRACE" level="TRACE" additivity="false">
+        <logger name="io.cockroachdb.dlr.SQL_TRACE" level="TRACE" additivity="false">
             <appender-ref ref="CONSOLE"/>
         </logger>
     </springProfile>
 
     <springProfile name="!verbose">
-        <logger name="io.cockroachdb.volt" level="INFO" additivity="false">
+        <logger name="io.cockroachdb.dlr" level="INFO" additivity="false">
             <appender-ref ref="CONSOLE"/>
         </logger>
 
-        <logger name="io.cockroachdb.volt.SQL_TRACE" level="INFO" additivity="false">
+        <logger name="io.cockroachdb.dlr.SQL_TRACE" level="INFO" additivity="false">
             <appender-ref ref="CONSOLE"/>
         </logger>
     </springProfile>

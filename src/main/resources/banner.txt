@@ -1,9 +1,9 @@
 ${AnsiColor.BRIGHT_YELLOW}
-──▄──▄────▄▀                  _ _
-───▀▄─█─▄▀▄▄▄     /\   /\___ | | |_
-▄██▄████▄██▄▀█▄   \ \ / / _ \| | __|
-─▀▀─█▀█▀▄▀███▀     \ V / (_) | | |_  C S V
-──▄▄▀─█──▀▄▄        \_/ \___/|_|\__| G E N E R A T O R
+──▄──▄────▄▀     ____    __   ____   __      __    _____    __    ____  ____  ____
+───▀▄─█─▄▀▄▄▄   (  _ \  /__\ (_  _) /__\    (  )  (  _  )  /__\  (  _ \( ___)(  _ \
+▄██▄████▄██▄▀█▄  )(_) )/(__)\  )(  /(__)\    )(__  )(_)(  /(__)\  )(_) ))__)  )   /
+─▀▀─█▀█▀▄▀███▀  (____/(__)(__)(__)(__)(__)  (____)(_____)(__)(__)(____/(____)(_)\_)
+──▄▄▀─█──▀▄▄    CSV generator for CockroachDB
 ${AnsiColor.BRIGHT_CYAN}${application.title}${application.formatted-version} powered by Spring Boot${spring-boot.formatted-version}
 ${AnsiColor.BRIGHT_CYAN}Active profiles: ${AnsiColor.CYAN}${spring.profiles.active}
 ${AnsiColor.BRIGHT_CYAN}   Database URL: ${AnsiColor.CYAN}${spring.datasource.url}${AnsiColor.DEFAULT}

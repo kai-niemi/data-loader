@@ -40,7 +40,7 @@ fn_run(){
 }
 
 basedir=.
-jarfile=${basedir}/target/volt.jar
+jarfile=${basedir}/target/dlr.jar
 profiles="default"
 
 if [ ! -f "$jarfile" ]; then

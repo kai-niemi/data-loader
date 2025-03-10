@@ -1,7 +1,7 @@
-[![Java CI with Maven](https://github.com/kai-niemi/volt/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/kai-niemi/volt/actions/workflows/maven.yml)
+[![Java CI with Maven](https://github.com/kai-niemi/data-loader/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/kai-niemi/data-loader/actions/workflows/maven.yml)
        
 <!-- TOC -->
-* [About Volt](#about-volt)
+* [About Data Loader](#about-data-loader)
 * [Quick Start](#quick-start-)
   * [Prerequisites](#prerequisites)
   * [Running](#running)
@@ -34,23 +34,26 @@
 * [Terms of Use](#terms-of-use)
 <!-- TOC -->
 
-# About Volt
+# About Data Loader
 
-<img align="left" src="logo.png" width="128" /> Volt is a flexible, low-effort CSV file 
-generator targeting CockroachDB IMPORT and COPY data loading. As such, it generates 
-CSV files based on a YAML configuration which in turn can be optionally generated 
-from a database schema.
+<img align="left" src="logo.png" width="128" /> A flexible CSV file and stream 
+generator targeting CockroachDB IMPORT and COPY data imports for load testing. 
 
-The memory footprint is low when generating very large CSVs since it doesn't build 
-much state during CSV data generation. The main exception being 
+It generates CSV files (or streams over HTTP) based on a YAML configuration, 
+which in turn can be generated from a database schema.
+
+The memory footprint is low also when generating large CSVs since it doesn't 
+build state during data generation. The exception being 
 [cartesian or cross product](https://en.wikipedia.org/wiki/Join_(SQL)#Cross_join)
-multi-table relations where aggregation needs to be done in-memory before
-writing data (see [Each](#each) below for details). For more typical one-to-many relationships
-it uses circular bounded buffers to constrain memory usage.
+multi-table relations, where in-memory aggregation needs to be done before writing 
+the CSV data (see [Each](#each) below for details). For typical one-to-many 
+relationships, it uses circular bounded buffers to constrain memory usage to 
+a minimum.
 
-The tool comes with a command-line interface, an interactive shell and a Hypermedia REST API 
+It comes with a command-line interface, an interactive shell and a Hypermedia/REST API 
 that supports CockroachDB `IMPORT INTO` and `COPY FROM` commands for consuming CSV files. 
-The REST API can also stream CSV data on demand without actually writing to local files.
+The REST API can also stream CSV data on demand without actually writing anything 
+to local files.
 
 Main use cases:
 
@@ -60,11 +63,11 @@ Main use cases:
 
 # Quick Start 
 
-Either download the [release jar](https://github.com/kai-niemi/volt/releases) or build it locally.
+Either download the [release jar](https://github.com/kai-niemi/data-loader/releases) or build it locally.
 
 ## Prerequisites
 
-- Java 17+ JRE
+- Java 21+ JRE
 - CockroachDB 23.2+
   - https://www.cockroachlabs.com/docs/releases/
 
@@ -72,17 +75,17 @@ Either download the [release jar](https://github.com/kai-niemi/volt/releases) or
 
 Run the app with:
 
-    java -jar volt.jar
+    java -jar dlr.jar
 
-Type `help` for further guidance.
+Type `help` in the shell for further guidance.
 
 # Building 
 
 ## Prerequisites
 
-- Java 17 (or later) JDK
-    - https://openjdk.org/projects/jdk/17/
-    - https://www.oracle.com/java/technologies/downloads/#java17
+- Java 21 (or later) JDK
+    - https://openjdk.org/projects/jdk/21/
+    - https://www.oracle.com/java/technologies/downloads/#java21
 - CockroachDB 23.2 (or later) 
     - https://www.cockroachlabs.com/docs/releases/
 
@@ -90,20 +93,19 @@ Type `help` for further guidance.
 
 Ubuntu:
 
-    sudo apt-get install openjdk-17-jdk
+    sudo apt-get install openjdk-21-jdk
 
 MacOS (using sdkman):
 
     curl -s "https://get.sdkman.io" | bash
     sdk list java
-    sdk install java 17.. (pick version)  
+    sdk install java 21.. (pick version)  
 
 ## Build and Run
 
 Clone the project:
 
-    git clone git@github.com:cloudneutral/volt.git volt
-    cd volt
+    git clone git@github.com:kai-niemi/data-loader.git && cd data-loader
 
 Build a single, executable JAR:
 
@@ -123,23 +125,23 @@ proper randomization functions and more.
 
 ### Preparation
 
-For the purpose of this tutorial, first create a `volt` database with a 
+For the purpose of this tutorial, first create a `dlr` database with a 
 sample schema using [create-default.sql](samples/create-default.sql):
 
-    cockroach sql --insecure --host=localhost -e "CREATE database volt"
-    cockroach sql --insecure --host=localhost --database volt < samples/create-default.sql
+    cockroach sql --insecure --host=localhost -e "CREATE database dlr"
+    cockroach sql --insecure --host=localhost --database dlr < samples/create-default.sql
 
 ### Generating CSV Files
 
 The `application-default.yml` profile will create three separate CSV files 
-with 100 customers, 200 orders and 1,000 order items. This file describes 
+with `100` customers, `200` orders and `1,000` order items. This file describes 
 the CSV file layouts and relations which can be inferred from an existing 
 database schema (see next section).
 
 Generate the CSV files using `csv-generate` shell command:
 
     echo "csv-generate --quit" > cmd-gen.txt
-    java -jar target/volt.jar @cmd-gen.txt
+    java -jar target/dlr.jar @cmd-gen.txt
 
 Upon completion, the `.output` directory will now have the following files:
 
@@ -155,14 +157,14 @@ statements in topological order inferred from the table relationships.
 
 ### Importing CSV Files
 
-When you run volt with the http mode enabled, CockroachDB can consume the 
+When you run csv with the http mode enabled, CockroachDB can consume the 
 CSV files using either `IMPORT` or `COPY`:
 
-    java -jar target/volt.jar --http
+    java -jar target/dlr.jar --http
 
 Import all the CSVs using `IMPORT INTO`:
 
-    cockroach sql --insecure --host=localhost --database volt < .output/import.sql
+    cockroach sql --insecure --host=localhost --database dlr < .output/import.sql
 
 > Hint: If your import jobs get stuck you can cancel them with:
 
@@ -172,12 +174,12 @@ Since `IMPORT INTO` takes the tables offline, you can alternatively use `COPY ..
 
 Example commands using local files:
 
-    echo "--insecure --database volt" > credentials.txt
+    echo "--insecure --database dlr" > credentials.txt
     echo "COPY customer FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/customer.csv | cockroach sql $( cat credentials.txt )
     echo "COPY purchase_order FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/purchase_order.csv | cockroach sql $( cat credentials.txt )
     echo "COPY purchase_order_item FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/purchase_order_item.csv | cockroach sql $( cat credentials.txt )
 
-Example commands using volt as HTTP proxy for the local files:
+Example commands using dlr as HTTP proxy for the local files:
 
     echo "COPY customer FROM STDIN WITH CSV DELIMITER ',' HEADER;" > header.csv && curl http://localhost:8090/customer.csv | cat header.csv - | cockroach sql $( cat credentials.txt )
     echo "COPY purchase_order FROM STDIN WITH CSV DELIMITER ',' HEADER;" > header.csv && curl http://localhost:8090/purchase_order.csv | cat header.csv - | cockroach sql $( cat credentials.txt )
@@ -188,7 +190,7 @@ Example commands using volt as HTTP proxy for the local files:
 The shell command `db-export` will generate configuration YAML file from a database.
 
     echo "db-export --quit" > cmd-export.txt
-    java -jar target/volt.jar @cmd-export.txt
+    java -jar target/dlr.jar @cmd-export.txt
 
 Check out the YAML file:
     
@@ -262,7 +264,7 @@ Top-level entry in `application<-profile>.yml`.
 ### Tables
 
 Collection of tables where one table map to one CSV file. Table can be related to other tables 
-using `each` or `ref` columns. If such relations exist, volt will buffer ancestor table rows
+using `each` or `ref` columns. If such relations exist, dlr will buffer ancestor table rows
 in memory while generating descendant rows (using bounded cyclic buffers). 
 
     model:
@@ -371,13 +373,13 @@ type `expr-functions` in the shell and TAB for code completion.
           
 | Field Name | Optional | Default | Description                                                                                                                          |
 |------------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------|
-| expression | Yes      | -       | A binary expression following the [ExpressionParser](src/main/resources/io/cockroachdb/volt/expression/ExpressionParser.g4) grammar. |
+| expression | Yes      | -       | A binary expression following the [ExpressionParser](src/main/resources/io/cockroachdb/dlr/expression/ExpressionParser.g4) grammar. |
 
 **Remarks:**
 
 The logical expressions and support basic arithmetics, string manipulation, function calls and simple 
 conditional logic using `IF <condition> THEN <outcome> ELSE <other-outcome>`. For some examples, 
-see [ExpressionGrammarTest.java](src/test/java/io/cockroachdb/volt/expression/ExpressionGrammarTest.java).
+see [ExpressionGrammarTest.java](src/test/java/io/cockroachdb/dlr/expression/ExpressionGrammarTest.java).
 
 ---
 
