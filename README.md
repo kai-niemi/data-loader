@@ -14,6 +14,8 @@
     * [Preparation](#preparation)
     * [Generating CSV Files](#generating-csv-files)
     * [Importing CSV Files](#importing-csv-files)
+      * [IMPORT INTO method](#import-into-method)
+      * [COPY FROM method](#copy-from-method)
     * [Generating Configuration](#generating-configuration)
     * [Sorting CSV Files](#sorting-csv-files)
 * [Configuration](#configuration)
@@ -36,28 +38,20 @@
 
 # About Data Loader
 
-<img align="left" src="logo.png" width="128" /> A flexible CSV file and stream 
-generator targeting CockroachDB IMPORT and COPY imports. It generates CSV files 
-(or streams over HTTP) based on a YAML configuration, which in turn can be 
-generated from a database schema to save time.
-
-The memory footprint is low since it doesn't build much state during data generation,
-making it a good fit for initial data loading for load/stress tests. The only exception 
-being [cartesian or cross product](https://en.wikipedia.org/wiki/Join_(SQL)#Cross_join) multi-table relations, where in-memory aggregation 
-is needed before writing CSV data (see [Each](#each) below for details). 
-For more common `one-to-many` relationships, it uses circular 
-bounded buffers to constrain memory usage to a minimum.
+<img align="left" src="logo.png" width="128" /> A flexible CSV-oriented file and stream 
+generator and loading tool targeting CockroachDB IMPORT and COPY imports. It can load 
+arbitrary CSV files into CockroachDB for migration purposes and generate files based 
+on a YAML configuration for testing purposes.
 
 Main use cases include:
 
-- Generate large CSV files for the purpose of functional / load testing
+- Import large CSV files for the purpose of data migration
+- Generate large CSV files or streams for the purpose of load testing
+- Merge-sort and split large CSV files
 - Support `IMPORT INTO` and `COPY FROM` commands via HTTP endpoint
-- Merge-sort large CSV files
 
-It comes with a command-line interface, an interactive shell and a Hypermedia/REST API 
-that supports CockroachDB `IMPORT INTO` and `COPY FROM` commands for consuming CSV files. 
-The REST API can also stream CSV data on demand without actually writing anything 
-to local files.
+It comes with a command-line interface, an interactive shell and a Hypermedia API 
+that supports CockroachDB `IMPORT INTO` and `COPY FROM` commands for consuming CSV files.
 
 # Quick Start 
 
@@ -73,7 +67,7 @@ Either download the [release jar](https://github.com/kai-niemi/data-loader/relea
 
 Run the app with:
 
-    java -jar dlr.jar
+    java -jar dl.jar
 
 Type `help` in the shell for further guidance.
 
@@ -123,13 +117,18 @@ proper randomization functions and more.
 
 ### Preparation
 
-For the purpose of this tutorial, first create a `dlr` database with a 
-sample schema using [create-default.sql](samples/create-default.sql):
+For this tutorial, we create a sample schema in `defaultdb` using 
+[create-default.sql](samples/create-default.sql):
 
-    cockroach sql --insecure --host=localhost -e "CREATE database dlr"
-    cockroach sql --insecure --host=localhost --database dlr < samples/create-default.sql
+    cockroach sql --insecure --host=localhost --database defaultdb < samples/create-default.sql
 
 ### Generating CSV Files
+
+As a general note, the memory footprint is low during CSV generation since `dl` 
+doesn't build much state. The only exception being [cartesian or cross product](https://en.wikipedia.org/wiki/Join_(SQL)#Cross_join) 
+multi-table relations, where in-memory aggregation is needed before writing CSV data 
+(see [Each](#each) below for details). For more common `one-to-many` relationships, 
+it uses circular bounded buffers to constrain memory usage to a minimum.
 
 The `application-default.yml` profile will create three separate CSV files 
 with `100` customers, `200` orders and `1,000` order items. This file describes 
@@ -139,7 +138,7 @@ database schema (see next section).
 Generate the CSV files using `csv-generate` shell command:
 
     echo "csv-generate --quit" > cmd-gen.txt
-    java -jar target/dlr.jar @cmd-gen.txt
+    java -jar target/dl.jar @cmd-gen.txt
 
 Upon completion, the `.output` directory will now have the following files:
 
@@ -155,29 +154,35 @@ statements in topological order inferred from the table relationships.
 
 ### Importing CSV Files
 
-When you run csv with the http mode enabled, CockroachDB can consume the 
-CSV files using either `IMPORT` or `COPY`:
+If you run `dl` with the `streaming` profile enabled, then CockroachDB can consume the 
+CSV streams in parallel using either `IMPORT INTO` or `COPY`.
 
-    java -jar target/dlr.jar --http
+Lets start `dl` in the streaming (http listener) mode:
 
-Import all the CSVs using `IMPORT INTO`:
+    java -jar target/dl.jar --streaming
 
-    cockroach sql --insecure --host=localhost --database dlr < .output/import.sql
+#### IMPORT INTO method
 
-> Hint: If your import jobs get stuck you can cancel them with:
+Next, import all the CSVs using `IMPORT INTO` embedded in the generated SQL file:
 
+    cockroach sql --insecure --host=localhost --database dl < .output/import.sql
+
+_Hint: If your import jobs get stuck you can cancel them using this  command:_
+ 
     CANCEL JOBS (WITH x AS (SHOW JOBS) SELECT job_id FROM x WHERE job_type='IMPORT' and status != 'failed');
 
-Since `IMPORT INTO` takes the tables offline, you can alternatively use `COPY .. FROM` instead:
+#### COPY FROM method
+
+Since `IMPORT INTO` takes the tables offline, you can alternatively use `COPY .. FROM` instead.
 
 Example commands using local files:
 
-    echo "--insecure --database dlr" > credentials.txt
+    echo "--insecure --database dl" > credentials.txt
     echo "COPY customer FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/customer.csv | cockroach sql $( cat credentials.txt )
     echo "COPY purchase_order FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/purchase_order.csv | cockroach sql $( cat credentials.txt )
     echo "COPY purchase_order_item FROM STDIN WITH CSV DELIMITER ',' HEADER;" | cat - .output/purchase_order_item.csv | cockroach sql $( cat credentials.txt )
 
-Example commands using dlr as HTTP proxy for the local files:
+Example commands using `dl` as a CSV stream generating proxy:
 
     echo "COPY customer FROM STDIN WITH CSV DELIMITER ',' HEADER;" > header.csv && curl http://localhost:8090/customer.csv | cat header.csv - | cockroach sql $( cat credentials.txt )
     echo "COPY purchase_order FROM STDIN WITH CSV DELIMITER ',' HEADER;" > header.csv && curl http://localhost:8090/purchase_order.csv | cat header.csv - | cockroach sql $( cat credentials.txt )
@@ -188,7 +193,7 @@ Example commands using dlr as HTTP proxy for the local files:
 The shell command `db-export` will generate configuration YAML file from a database.
 
     echo "db-export --quit" > cmd-export.txt
-    java -jar target/dlr.jar @cmd-export.txt
+    java -jar target/dl.jar @cmd-export.txt
 
 Check out the YAML file:
     
@@ -262,7 +267,7 @@ Top-level entry in `application<-profile>.yml`.
 ### Tables
 
 Collection of tables where one table map to one CSV file. Table can be related to other tables 
-using `each` or `ref` columns. If such relations exist, dlr will buffer ancestor table rows
+using `each` or `ref` columns. If such relations exist, dl will buffer ancestor table rows
 in memory while generating descendant rows (using bounded cyclic buffers). 
 
     model:
@@ -371,13 +376,13 @@ type `expr-functions` in the shell and TAB for code completion.
           
 | Field Name | Optional | Default | Description                                                                                                                          |
 |------------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------|
-| expression | Yes      | -       | A binary expression following the [ExpressionParser](src/main/resources/io/cockroachdb/dlr/expression/ExpressionParser.g4) grammar. |
+| expression | Yes      | -       | A binary expression following the [ExpressionParser](src/main/resources/io/cockroachdb/dl/expression/ExpressionParser.g4) grammar. |
 
 **Remarks:**
 
 The logical expressions and support basic arithmetics, string manipulation, function calls and simple 
 conditional logic using `IF <condition> THEN <outcome> ELSE <other-outcome>`. For some examples, 
-see [ExpressionGrammarTest.java](src/test/java/io/cockroachdb/dlr/expression/ExpressionGrammarTest.java).
+see [ExpressionGrammarTest.java](src/test/java/io/cockroachdb/dl/expression/ExpressionGrammarTest.java).
 
 ---
 

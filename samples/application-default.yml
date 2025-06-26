@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: "jdbc:postgresql://localhost:26257/dlr?sslmode=disable"
+    url: "jdbc:postgresql://localhost:26257/defaultdb?sslmode=disable"
     username: "root"
 model:
   options:

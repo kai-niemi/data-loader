@@ -1,9 +1,9 @@
 ${AnsiColor.BRIGHT_YELLOW}
-──▄──▄────▄▀     ____    __   ____   __      __    _____    __    ____  ____  ____
-───▀▄─█─▄▀▄▄▄   (  _ \  /__\ (_  _) /__\    (  )  (  _  )  /__\  (  _ \( ___)(  _ \
-▄██▄████▄██▄▀█▄  )(_) )/(__)\  )(  /(__)\    )(__  )(_)(  /(__)\  )(_) ))__)  )   /
-─▀▀─█▀█▀▄▀███▀  (____/(__)(__)(__)(__)(__)  (____)(_____)(__)(__)(____/(____)(_)\_)
-──▄▄▀─█──▀▄▄    CSV generator for CockroachDB
+──▄──▄────▄▀          ____        __           __                    __
+───▀▄─█─▄▀▄▄▄        / __ \____ _/ /_____ _   / /   ____  ____ _____/ /__  _____
+▄██▄████▄██▄▀█▄     / / / / __ `/ __/ __ `/  / /   / __ \/ __ `/ __  / _ \/ ___/
+─▀▀─█▀█▀▄▀███▀     / /_/ / /_/ / /_/ /_/ /  / /___/ /_/ / /_/ / /_/ /  __/ /
+──▄▄▀─█──▀▄▄      /_____/\__,_/\__/\__,_/  /_____/\____/\__,_/\__,_/\___/_/
 ${AnsiColor.BRIGHT_CYAN}${application.title}${application.formatted-version} powered by Spring Boot${spring-boot.formatted-version}
 ${AnsiColor.BRIGHT_CYAN}Active profiles: ${AnsiColor.CYAN}${spring.profiles.active}
 ${AnsiColor.BRIGHT_CYAN}   Database URL: ${AnsiColor.CYAN}${spring.datasource.url}${AnsiColor.DEFAULT}
